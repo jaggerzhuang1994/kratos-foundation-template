@@ -29,7 +29,7 @@ go install github.com/go-kratos/kratos/cmd/kratos/v2@latest
 
 ```bash
 # 创建项目
-kratos new example_proj -r https://github.com/jaggerzhuang1994/kratos-foundation-template
+kratos new 你的项目名 -r https://github.com/jaggerzhuang1994/kratos-foundation-template
 
 # 进入项目目录
 cd example
@@ -46,7 +46,9 @@ make run
 
 ### 3. 重命名模块名（可选）
 
-如果项目有独立的 Git 仓库，建议重命名 Go 模块名：
+* 如果项目需要部署为go私有包，需要将go module命名为仓库名，因此需要使用重命名模块名工具重命名
+* ⚠️此工具是粗暴的全文件文本替换，因此可能会错误替换非模块名的文本为新模块名，导致代码报错，进行此操作前，需要备份下代码，或者在
+  git 工作空间是干净的前提下进行。
 
 ```bash
 # 执行前最好备份下原代码，执行这个方法会搜索所有文件内的字符串替换现在的项目名为新的项目名
@@ -90,27 +92,27 @@ make all
 项目采用分层架构，开发流程如下：
 
 1. **Service 层** (`internal/service`)
-   - 实现 protobuf 生成的服务接口
-   - 调用 Biz 层业务逻辑
-   - 在 `internal/bootstrap/bootstrap.go` 中注册服务
+    - 实现 protobuf 生成的服务接口
+    - 调用 Biz 层业务逻辑
+    - 在 `internal/bootstrap/bootstrap.go` 中注册服务
 
 2. **Biz 层** (`internal/biz`)
-   - 编写核心业务逻辑
-   - 定义业务实体和错误
-   - 定义外部依赖接口（Repository/Client）
+    - 编写核心业务逻辑
+    - 定义业务实体和错误
+    - 定义外部依赖接口（Repository/Client）
 
 3. **Data 层** (`internal/data`)
-   - 实现 Biz 层定义的数据接口
-   - 处理数据库访问、缓存等
+    - 实现 Biz 层定义的数据接口
+    - 处理数据库访问、缓存等
 
 4. **Client 层** (`internal/client`)
-   - 实现 Biz 层定义的客户端接口
-   - 处理外部 API 调用
+    - 实现 Biz 层定义的客户端接口
+    - 处理外部 API 调用
 
 5. **配置管理** (`internal/conf`)
-   - 在 proto 中定义配置结构
-   - 执行 `make config` 生成配置代码
-   - 通过注入 `*conf.Bootstrap` 访问配置
+    - 在 proto 中定义配置结构
+    - 执行 `make config` 生成配置代码
+    - 通过注入 `*conf.Bootstrap` 访问配置
 
 ### 客户端注入
 
@@ -125,7 +127,7 @@ import (
 )
 
 type BizImpl struct {
-	api server.ServerApi  // 使用生成的 ServerApi 接口
+	api server.ServerApi // 使用生成的 ServerApi 接口
 }
 
 func NewBizImpl(api server.ServerApi) *BizImpl {
@@ -133,7 +135,7 @@ func NewBizImpl(api server.ServerApi) *BizImpl {
 }
 
 var ProviderSet = wire.NewSet(
-	server.ServerApiProvider,  // 使用自动生成的 Provider
+	server.ServerApiProvider, // 使用自动生成的 Provider
 	NewBizImpl,
 )
 ```
@@ -237,7 +239,7 @@ var _ biz.GetUserRepo = (*UserTableRepo)(nil)
 
 var ProviderSet = wire.NewSet(
 	NewUserTableRepo,
-	wire.Bind(new(biz.GetUserRepo), new(*UserTableRepo)),  // 绑定接口实现
+	wire.Bind(new(biz.GetUserRepo), new(*UserTableRepo)), // 绑定接口实现
 )
 ```
 
