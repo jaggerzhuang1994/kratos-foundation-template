@@ -29,7 +29,7 @@ go install github.com/go-kratos/kratos/cmd/kratos/v2@latest
 
 ```bash
 # 创建项目
-kratos new example -r https://github.com/jaggerzhuang1994/kratos-foundation-template
+kratos new example_proj -r https://github.com/jaggerzhuang1994/kratos-foundation-template
 
 # 进入项目目录
 cd example
@@ -49,6 +49,8 @@ make run
 如果项目有独立的 Git 仓库，建议重命名 Go 模块名：
 
 ```bash
+# 执行前最好备份下原代码，执行这个方法会搜索所有文件内的字符串替换现在的项目名为新的项目名
+# 如果现有项目名是项目中出现的其他标识符，可能会导致项目报错
 make rename-module NEW=github.com/your-org/your-project
 ```
 
