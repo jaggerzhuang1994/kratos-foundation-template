@@ -102,3 +102,36 @@ help:
 	{ lastLine = $$0 }' $(MAKEFILE_LIST)
 
 .DEFAULT_GOAL := help
+
+# --- 通用 sed -i 封装（兼容 macOS / Linux / Git Bash）---
+UNAME_S := $(shell uname -s)
+
+SED_INPLACE := sed -i
+ifeq ($(UNAME_S),Darwin)
+	# macOS 的 sed 需要一个空备份后缀
+	SED_INPLACE := sed -i ''
+endif
+
+.PHONY: rename-module
+# 替换整个 go module 名称
+# 用法：make rename-module NEW=github.com/jaggerzhuang1994/kratos-foundation-template
+rename-module:
+	@if [ -z "$(NEW)" ]; then \
+		echo "用法: make rename-module NEW=github.com/jaggerzhuang1994/kratos-foundation-template"; \
+		exit 1; \
+	fi
+	@old=$$(go list -m); \
+	echo "old module: $$old"; \
+	echo "new module: $(NEW)"; \
+	echo ">> 更新 go.mod 中的 module 行"; \
+	$(SED_INPLACE) "s#^module $$old#module $(NEW)#" go.mod; \
+	echo ">> 全局替换源码中的导入路径等引用"; \
+	find . -type f \( \
+		-name '*.go' -o -name '*.proto' -o -name '*.yaml' -o -name '*.yml' -o -name 'Makefile' \
+	\) \
+		-not -path './.git/*' \
+		-not -path './vendor/*' \
+		-not -path './bin/*' \
+		-print0 | xargs -0 $(SED_INPLACE) "s#$$old#$(NEW)#g"; \
+	echo ">> make all..."; \
+	make all
