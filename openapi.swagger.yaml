@@ -1,35 +1,93 @@
 swagger: "2.0"
 info:
-  title: helloworld/v1/error_reason.proto
+  title: example_service/example_service.proto
   version: version not set
 tags:
-  - name: Greeter
+  - name: ExampleService
 consumes:
   - application/json
 produces:
   - application/json
 paths:
-  /helloworld/{name}:
+  /user:
     get:
-      summary: Sends a greeting
-      operationId: Greeter_SayHello
+      operationId: ExampleService_GetUser
       responses:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1HelloReply'
+            $ref: '#/definitions/example_serviceGetUserResponse'
         default:
           description: An unexpected error response.
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: name
-          in: path
-          required: true
+        - name: id
+          in: query
+          required: false
           type: string
+          format: int64
       tags:
-        - Greeter
+        - ExampleService
+  /user2:
+    get:
+      operationId: ExampleService_GetUser2
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/example_serviceGetUserResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          in: query
+          required: false
+          type: string
+          format: int64
+      tags:
+        - ExampleService
+  /user3:
+    get:
+      operationId: ExampleService_GetUser3
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/example_serviceGetUserResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          in: query
+          required: false
+          type: string
+          format: int64
+      tags:
+        - ExampleService
 definitions:
+  GetUserResponseData:
+    type: object
+    properties:
+      id:
+        type: string
+        format: int64
+      name:
+        type: string
+  example_serviceGetUserResponse:
+    type: object
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+      data:
+        $ref: '#/definitions/GetUserResponseData'
   protobufAny:
     type: object
     properties:
@@ -49,9 +107,3 @@ definitions:
         items:
           type: object
           $ref: '#/definitions/protobufAny'
-  v1HelloReply:
-    type: object
-    properties:
-      message:
-        type: string
-    title: The response message containing the greetings

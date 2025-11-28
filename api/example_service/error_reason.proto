@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "github.com/jaggerzhuang1994/kratos-foundation-template/api/example_service/example_pb";
+
+package example_service;
+
+import "errors/errors.proto";
+
+// 业务错误定义
+// 枚举值为业务错误码
+// errors.code为http错误码
+enum ErrorReason {
+  // 默认 http 错误码 500
+  option (errors.default_code) = 500;
+  NONE = 0 [(errors.code) = 200]; // 成功
+
+  // 用户不存在
+  USER_NOT_FOUND = 404 [(errors.code) = 404];
+}

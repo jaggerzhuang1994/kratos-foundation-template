@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+// 指定pb生成路径[;包名]
+option go_package = "github.com/jaggerzhuang1994/kratos-foundation-template/api/example_service/example_pb;example_pb";
+
+package example_service;
+
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+// 服务定义
+service ExampleService {
+  rpc GetUser (GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = {
+      get: "/user"
+    };
+  }
+
+  rpc GetUser2 (GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = {
+      get: "/user2"
+    };
+  }
+
+  rpc GetUser3 (GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = {
+      get: "/user3"
+    };
+  }
+}
+
+message GetUserRequest {
+  int64 id = 1;
+}
+
+message GetUserResponse {
+  int32 code = 1;
+  string message = 2;
+  Data data = 3;
+
+  message Data {
+    int64 id = 1;
+    string name = 2;
+  }
+}

@@ -1,116 +1,64 @@
-app:
-  # 是否禁用服务注册
-  disable_registrar: false
-  # 注册中心超时时间（默认10s）
-  registrar_timeout: 10s
-  # stop timeout 必须大于 server.stop_delay （默认30s）
-  stop_timeout: 30s
-
+# 日志设置
 log:
   # 最小日志级别(本地环境或者debug环境默认 debug，其他环境默认 info)
   level: debug
-  # 打印日志过滤哪些keys
-  filter_keys:
-  # 时间格式化 默认为 time.RFC3339
-  time_format: 2006-01-02T15:04:05.999999999Z07:00
-  # 控制台输出日志
-  std:
-    # 是否禁用控制台输出日志
-    disable: false
-    # 控制台最小输出日志级别
-    level: debug
-    # 日志输出过滤key，继承上层 filter_keys
-    filter_keys:
-  # 文件日志
-  file:
-    # 是否禁用文件日志
-    disable: false
-    # 最小输出日志级别
-    level: debug
-    # 日志输出过滤key，继承上层 filter_keys
-    filter_keys:
-    # 文件日志
-    path: ./server.log
-    # 日志轮换
-    rotating:
-      # 是否禁用日志轮换
-      disable: true
-      # 最大文件大小（单位MB，默认100MB）
-      max_size: 1
-      # 最大文件年龄（单位 天，默认永久）
-      max_file_age: 1
-      # 最大文件数量（默认都保留）
-      max_files: 1
-      # 是否使用本地时区拆分文件日志(默认utc)
-      local_time: true
-      # 轮换后的日志文件是否应该使用 gzip 压缩。默认不进行压缩。
-      compress: true
 
-metric:
-  # 指标命名空间（默认为启动的应用名）
-  meter_name: example
-  # 初始 counter map 容量（默认 64）
-  counter_map_size: 128
-  # 初始 gauge map 容量（默认 64）
-  gauge_map_size: 128
-  # 初始 histogram map 容量（默认 64）
-  histogram_map_size: 128
-  # metrics.log
-  log:
-    level: debug
-    filter_keys:
-
+# 采样设置
 tracing:
-  # 导出器设置
-  exporter:
-    # 导出器链接，默认 http://localhost:4318/v1/traces
-    endpoint_url: http://localhost:4318/v1/traces
-    # 是否压缩 (No Gzip)，默认不压缩 No
-    compression: Gzip
-    # 额外请求头
-    headers:
-    # 默认10s
-    timeout:
-    # 重试机制
-    retry:
-      # 表示在导出失败时是否启用重试 默认启用
-      enabled: true
-      # 表示首次失败后，进行下一次重试前的等待时间。默认 5s
-      initial_interval: 5s
-      # 表示指数退避的最大等待时间上限。一旦达到该值，后续每次重试的等待时间都会固定为 MaxInterval。默认 30s
-      max_interval: 30s
-      # 表示尝试发送请求（含所有重试）的最大允许耗时。超过该时间后将停止重试并丢弃数据。默认 60s
-      max_elapsed_time: 60s
   # 采样率设置
   sampler:
-    # Ratio=按照采样率采样（parent_base） Always=总是采样（不论父级是否采样） Never=总是不采样（不论父级是否采样）
-    sample: Always
-    # 采样率，范围 0-1
+    # RATIO=按照采样率采样（parent_base） ALWAYS=总是采样（不论父级是否采样） NEVER=总是不采样（不论父级是否采样）
+    sample: RATIO
     ratio: 0.05
 
+# 服务设置
 server:
   stop_delay: 1s
   http:
-    addr: 0.0.0.0:8000
-    timeout: 1s
+    addr: 0.0.0.0:8001
   grpc:
     addr: 0.0.0.0:9001
-    timeout: 1s
+  middleware:
+    timeout:
+      default: 1s
+      routes:
+        - path: /example.ExampleService/GetUser
+          timeout: 0.5s
+        - prefix: /example.ExampleService/GetUser2
+          timeout: 0.7s
 
-  timeout:
-    - path: /helloworld.v1.Greeter/SayHello
-      timeout: 0.5s
-
+# redis配置
 redis:
+  # default 默认值是 default
   default: default
   connections:
-    # 其他配置看 RedisOption
     default:
       addr: "localhost:6379"
       db: 10
 
+# 数据库配置
 database:
+  # default 默认值是 default
   default: default
   connections:
     default:
       dsn: root:123456@tcp(localhost:3306)/quantification?parseTime=true&loc=Local
+
+# 客户端配置
+client:
+  clients:
+    # KEY 为服务名
+    example_service:
+      # 默认为 GRPC 协议
+      protocol: GRPC
+      # 指定ip:port，默认为 discovery:///service_name
+      target: "127.0.0.1:9001"
+      middleware:
+        timeout:
+          default: 1s
+#    other_service:
+#      protocol: HTTP
+#      target: "127.0.0.1:8001"
+##      middleware:
+##        timeout:
+##          default: 1s
