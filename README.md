@@ -1,49 +1,118 @@
-# kratos 项目模板
+# Kratos Foundation Template
 
-## 依赖
+基于 [Go-Kratos](https://go-kratos.dev/) 微服务框架的项目模板，提供了开箱即用的项目结构和最佳实践。
 
-* kratos
+## 特性
 
-## 安装 kratos
+- 🚀 基于 Kratos v2 微服务框架
+- 📦 清晰的分层架构（Service/Biz/Data/Client）
+- 🔌 Wire 依赖注入
+- 🛠️ 完善的 Makefile 工具链
+- 📝 Protocol Buffers 驱动开发
+- 🔧 自动生成客户端代码
 
-```
+## 前置要求
+
+- Go >= 1.22
+- Protocol Buffers 编译器
+- Kratos CLI 工具
+
+## 快速开始
+
+### 1. 安装 Kratos CLI
+
+```bash
 go install github.com/go-kratos/kratos/cmd/kratos/v2@latest
 ```
 
-## 使用模板创建项目
+### 2. 使用模板创建项目
+
+```bash
+# 创建项目
+kratos new example -r https://github.com/jaggerzhuang1994/kratos-foundation-template
+
+# 进入项目目录
+cd example
+
+# 安装依赖
+make init
+
+# 生成代码
+make all
+
+# 运行服务
+make run
+```
+
+### 3. 重命名模块名（可选）
+
+如果项目有独立的 Git 仓库，建议重命名 Go 模块名：
+
+```bash
+make rename-module NEW=github.com/your-org/your-project
+```
+
+## 项目结构
 
 ```
-> kratos new example -r https://github.com/jaggerzhuang1994/kratos-foundation-template
-> cd example
-> make all
+.
+├── api/                    # API 定义（protobuf）
+│   └── server/
+├── cmd/                    # 应用入口
+│   └── app/
+├── internal/              # 内部代码
+│   ├── bootstrap/         # 应用启动与初始化
+│   ├── biz/               # 业务逻辑层
+│   ├── client/            # 外部服务客户端
+│   ├── conf/              # 配置定义
+│   ├── data/              # 数据访问层
+│   └── service/           # 服务实现层
+├── configs/               # 配置文件
+└── Makefile              # 构建工具
 ```
 
-### 重命名go模块名
+## 开发指南
 
-```
-> make rename-module NEW=新的模块名
-```
+### 创建新服务
 
-### 创建服务
+```bash
+# 创建 proto 文件
+kratos proto add api/server/server.proto
 
-```
-# 创建pb
-> kratos proto add api/server/server.proto
-> make all
+# 生成代码
+make all
 ```
 
 ### 编写业务代码
 
-* 在 internal/service 编写服务入口，需实现 server.UnimplementedServerServer 接口
-* 在 internal/bootstrap/bootstrap.go 中向 httpServer/grpcServer 注册服务 server.RegisterServerServer
-* 在 internal/biz 中编写业务代码，并在 internal/service 中注入并调用 biz 业务逻辑
-* 在 internal/data 中实现 internal/biz 需要的数据接口
-* 在 internal/client 中实现 internal/biz 需要的客户端接口
-* 在 internal/conf 中添加业务需要的配置，并执行 make config 生成pb，在业务代码中注入 *conf.Bootstrap 即可访问
+项目采用分层架构，开发流程如下：
+
+1. **Service 层** (`internal/service`)
+   - 实现 protobuf 生成的服务接口
+   - 调用 Biz 层业务逻辑
+   - 在 `internal/bootstrap/bootstrap.go` 中注册服务
+
+2. **Biz 层** (`internal/biz`)
+   - 编写核心业务逻辑
+   - 定义业务实体和错误
+   - 定义外部依赖接口（Repository/Client）
+
+3. **Data 层** (`internal/data`)
+   - 实现 Biz 层定义的数据接口
+   - 处理数据库访问、缓存等
+
+4. **Client 层** (`internal/client`)
+   - 实现 Biz 层定义的客户端接口
+   - 处理外部 API 调用
+
+5. **配置管理** (`internal/conf`)
+   - 在 proto 中定义配置结构
+   - 执行 `make config` 生成配置代码
+   - 通过注入 `*conf.Bootstrap` 访问配置
 
 ### 客户端注入
 
-在生成的pb中会存在一个 _client.pb.go 的文件，会自动生成 wire 注入器 `ServerApiProvider`，客户端实例注入使用 `ServerApi`
+生成的 protobuf 代码会包含 `_client.pb.go` 文件，提供自动生成的 Wire Provider：
 
 ```go
 package client
@@ -54,81 +123,71 @@ import (
 )
 
 type BizImpl struct {
-	api server.ServerApi
+	api server.ServerApi  // 使用生成的 ServerApi 接口
 }
 
 func NewBizImpl(api server.ServerApi) *BizImpl {
 	return &BizImpl{api}
 }
 
-// ProviderSet 在 client 的wire中添加以下 provider 即可
 var ProviderSet = wire.NewSet(
-	server.ServerApiProvider,
+	server.ServerApiProvider,  // 使用自动生成的 Provider
 	NewBizImpl,
 )
-
 ```
 
-### biz业务接口定义以及外部实现的规范
+### 依赖倒置原则
 
-在 biz 中如果遇到外部逻辑（外部api/数据库/缓存/队列等）都应该在 biz 包内定义逻辑的
-interface，然后在对应包中实现并用wire绑定，biz注入该逻辑接口即可
+**Biz 层定义接口，外部层实现接口**
 
-#### 例如
+#### 示例：用户查询功能
 
-biz/user.go 实现获取用户信息的业务逻辑`GetUserBiz`，定义获取用户数据的逻辑接口 `GetUserRepo`
+**1. Biz 层定义** (`internal/biz/user.go`)
 
 ```go
 package biz
 
 import (
 	"context"
-
 	"github.com/jaggerzhuang1994/kratos-foundation/proto/kratos_foundation_pb"
 )
 
-// 在 biz 包内定义业务错误
-// 这里不只可以用我们自己生成的 errors，也可以用foundation包内的 errors 的错误（这些错误会自动渲染为对应的http响应）
+// 业务错误定义
 var ErrUserNotFound = kratos_foundation_pb.ErrorNotFound("user not found")
 
-// 在 biz 包内定义业务实体
+// 业务实体
 type User struct {
 	ID   int64
 	Name string
 }
 
-// 在biz中定义外部获取的逻辑接口
+// 数据访问接口（由 Data 层实现）
 type GetUserRepo interface {
 	GetUser(ctx context.Context, id int64) (User, error)
 }
 
-// 在业务实体上注入
+// 业务逻辑
 type GetUserBiz struct {
 	getUserRepo GetUserRepo
 }
 
-// 构造函数需要注册在biz.ProviderSet内
 func NewGetUserBiz(getUserRepo GetUserRepo) *GetUserBiz {
 	return &GetUserBiz{getUserRepo}
 }
 
-// 定义方法给 service 调用
 func (biz *GetUserBiz) GetUser(ctx context.Context, id int64) (User, error) {
 	return biz.getUserRepo.GetUser(ctx, id)
 }
-
 ```
 
-在 data 中需要实现这个获取数据的逻辑接口
-
-data/user_table_repo.go
+**2. Data 层实现** (`internal/data/user_table_repo.go`)
 
 ```go
 package data
 
 import (
 	"context"
-
+	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/biz"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/database"
 )
 
@@ -136,37 +195,119 @@ type UserTableRepo struct {
 	db *database.Manager
 }
 
-// 需要在 data.ProviderSet 中注册
 func NewUserTableRepo(db *database.Manager) *UserTableRepo {
 	return &UserTableRepo{db}
 }
 
-// 需要实现 biz 中的业务逻辑
+// 实现 biz.GetUserRepo 接口
 func (repo *UserTableRepo) GetUser(ctx context.Context, id int64) (biz.User, error) {
-	// 这里需要使用 model 获取用户，并转成 biz.User 返回
-	// 这里不能直接用 biz.User 作为数据库读写的model
-	// 应该在 data/po 或者 data/model 下定义对应的模型结构用作 gorm 的模型
-	// 不能在 biz 包内断言 err 是不是 gorm 的 RecordNotFound 错误，需要在这里判断 db 的数据是否存在，不存在 需要返回 biz.ErrUserNotFound 错误
-}
+	// 1. 使用 data/po 或 data/model 中定义的 GORM 模型
+	// 2. 查询数据库
+	// 3. 转换为 biz.User 实体
+	// 4. 处理错误（如记录不存在，返回 biz.ErrUserNotFound）
 
+	// 示例代码（伪代码）
+	// var userPO UserPO
+	// if err := repo.db.First(&userPO, id).Error; err != nil {
+	//     if errors.Is(err, gorm.ErrRecordNotFound) {
+	//         return biz.User{}, biz.ErrUserNotFound
+	//     }
+	//     return biz.User{}, err
+	// }
+	// return biz.User{ID: userPO.ID, Name: userPO.Name}, nil
+
+	return biz.User{}, nil
+}
 ```
 
-实现完读数据接口后，向 data.ProviderSet 注册实现和绑定接口实现，并且约束接口实现。
-
-data/wire.go
+**3. Wire 绑定** (`internal/data/wire.go`)
 
 ```go
 package data
 
-import "github.com/google/wire"
-
-// repo 实现哪些接口在这里约束 wire.Bind 只会在 wire 时提示找不到接口或者接口不满足约束，这里直接写可以实时提示是否满足接口约束
-var _ biz.GetUserRepo = (*UserTableRepo)(nil) // 约束接口
-
-// ProviderSet is data providers.
-var ProviderSet = wire.NewSet(
-	NewUserTableRepo,                                     // 注册实现
-	wire.Bind(new(biz.GetUserRepo), new(*UserTableRepo)), // 绑定接口
+import (
+	"github.com/google/wire"
+	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/biz"
 )
 
+// 编译时接口约束检查
+var _ biz.GetUserRepo = (*UserTableRepo)(nil)
+
+var ProviderSet = wire.NewSet(
+	NewUserTableRepo,
+	wire.Bind(new(biz.GetUserRepo), new(*UserTableRepo)),  // 绑定接口实现
+)
 ```
+
+## 设计原则
+
+### 分层职责
+
+- **Service**: 协议适配，参数校验，调用 Biz
+- **Biz**: 业务逻辑，定义接口，不依赖具体实现
+- **Data**: 数据访问，实现 Biz 定义的接口
+- **Client**: 外部调用，实现 Biz 定义的接口
+
+### 依赖方向
+
+```
+Service → Biz ← Data
+            ↑
+            └── Client
+```
+
+### 错误处理
+
+- Biz 层定义业务错误
+- Data/Client 层将底层错误转换为业务错误
+- 使用 kratos-foundation 提供的标准错误类型
+
+### 实体映射
+
+- **Biz Entity**: 业务实体，贫血模型
+- **Data PO/Model**: 数据库模型，与 ORM 绑定
+- **Service DTO**: API 请求/响应，由 protobuf 生成
+
+不同层次使用不同的数据结构，避免跨层污染。
+
+## 常用命令
+
+```bash
+# 初始化依赖
+make init
+
+# 生成所有代码
+make all
+
+# 仅生成 API 代码
+make api
+
+# 仅生成配置代码
+make config
+
+# 生成 Wire 依赖注入代码
+make generate
+
+# 运行服务
+make run
+
+# 构建二进制
+make build
+
+# 代码检查
+make lint
+
+# 查看帮助
+make help
+```
+
+## 相关资源
+
+- [Go-Kratos 官方文档](https://go-kratos.dev/)
+- [Kratos Foundation](https://github.com/jaggerzhuang1994/kratos-foundation)
+- [Protocol Buffers](https://developers.google.com/protocol-buffers)
+- [Wire 依赖注入](https://github.com/google/wire)
+
+## 许可证
+
+本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
