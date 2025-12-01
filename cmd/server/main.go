@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/app_info"
+	_ "github.com/jaggerzhuang1994/kratos-foundation/pkg/setup"
 	_ "go.uber.org/automaxprocs"
 )
 

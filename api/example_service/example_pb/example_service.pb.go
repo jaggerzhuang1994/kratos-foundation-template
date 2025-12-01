@@ -192,11 +192,12 @@ const file_example_service_example_service_proto_rawDesc = "" +
 	"\x04data\x18\x03 \x01(\v2%.example_service.GetUserResponse.DataR\x04data\x1a*\n" +
 	"\x04Data\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name2\xab\x02\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name2\xfc\x02\n" +
 	"\x0eExampleService\x12[\n" +
 	"\aGetUser\x12\x1f.example_service.GetUserRequest\x1a .example_service.GetUserResponse\"\r\x82\xd3\xe4\x93\x02\a\x12\x05/user\x12]\n" +
 	"\bGetUser2\x12\x1f.example_service.GetUserRequest\x1a .example_service.GetUserResponse\"\x0e\x82\xd3\xe4\x93\x02\b\x12\x06/user2\x12]\n" +
-	"\bGetUser3\x12\x1f.example_service.GetUserRequest\x1a .example_service.GetUserResponse\"\x0e\x82\xd3\xe4\x93\x02\b\x12\x06/user3BbZ`github.com/jaggerzhuang1994/kratos-foundation-template/api/example_service/example_pb;example_pbb\x06proto3"
+	"\bGetUser3\x12\x1f.example_service.GetUserRequest\x1a .example_service.GetUserResponse\"\x0e\x82\xd3\xe4\x93\x02\b\x12\x06/user3\x12O\n" +
+	"\bGetUser4\x12\x1f.example_service.GetUserRequest\x1a .example_service.GetUserResponse\"\x00BbZ`github.com/jaggerzhuang1994/kratos-foundation-template/api/example_service/example_pb;example_pbb\x06proto3"
 
 var (
 	file_example_service_example_service_proto_rawDescOnce sync.Once
@@ -221,11 +222,13 @@ var file_example_service_example_service_proto_depIdxs = []int32{
 	0, // 1: example_service.ExampleService.GetUser:input_type -> example_service.GetUserRequest
 	0, // 2: example_service.ExampleService.GetUser2:input_type -> example_service.GetUserRequest
 	0, // 3: example_service.ExampleService.GetUser3:input_type -> example_service.GetUserRequest
-	1, // 4: example_service.ExampleService.GetUser:output_type -> example_service.GetUserResponse
-	1, // 5: example_service.ExampleService.GetUser2:output_type -> example_service.GetUserResponse
-	1, // 6: example_service.ExampleService.GetUser3:output_type -> example_service.GetUserResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
+	0, // 4: example_service.ExampleService.GetUser4:input_type -> example_service.GetUserRequest
+	1, // 5: example_service.ExampleService.GetUser:output_type -> example_service.GetUserResponse
+	1, // 6: example_service.ExampleService.GetUser2:output_type -> example_service.GetUserResponse
+	1, // 7: example_service.ExampleService.GetUser3:output_type -> example_service.GetUserResponse
+	1, // 8: example_service.ExampleService.GetUser4:output_type -> example_service.GetUserResponse
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name

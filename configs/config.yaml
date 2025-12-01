@@ -2,6 +2,7 @@
 log:
   # 最小日志级别(本地环境或者debug环境默认 debug，其他环境默认 info)
   level: debug
+  filter_empty: true
 
 # 采样设置
 tracing:

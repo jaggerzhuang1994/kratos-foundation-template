@@ -16,10 +16,11 @@ func NewConfig(
 	appInfo *app_info.AppInfo,
 	consul *consul.Client,
 	localFilePath LocalFilePath,
-) (config.Config, error) {
+) (config.Config, func(), error) {
+	// 本地配置
 	localConfigSource, err := config.NewFilePatternSource(localFilePath)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	appEnv := env.AppEnv()
@@ -35,7 +36,7 @@ func NewConfig(
 		fmt.Sprintf("app/configs/%s.%s.", appEnv, appName),
 		fmt.Sprintf("app/secrets/%s.%s.", appEnv, appName),
 	}
-
+	// 远程配置
 	remoteConfigSource := config.NewConsulSource(consul, consulConfigList)
 
 	var sources []config.Source
@@ -48,13 +49,16 @@ func NewConfig(
 		sources = append(sources, localConfigSource)
 		sources = append(sources, remoteConfigSource)
 	}
-	sources = utils.FilterZero(sources)
 
+	sources = utils.FilterZero(sources)
 	c := config.New(config.WithSource(config.NewPriorityConfigSource(sources)))
+
 	if err := c.Load(); err != nil {
 		_ = c.Close() // release config watcher
-		return nil, err
+		return nil, nil, err
 	}
 
-	return c, nil
+	return c, func() {
+		_ = c.Close()
+	}, nil
 }

@@ -24,12 +24,14 @@ import (
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/log"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/metrics"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/redis"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/registry"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/server"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/tracing"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/consul"
 )
 
 import (
+	_ "github.com/jaggerzhuang1994/kratos-foundation/pkg/setup"
 	_ "go.uber.org/automaxprocs"
 )
 
@@ -41,22 +43,25 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 	if err != nil {
 		return nil, nil, err
 	}
-	config, err := conf.NewConfig(arg, v, localFilePath)
+	config, cleanup, err := conf.NewConfig(arg, v, localFilePath)
 	if err != nil {
 		return nil, nil, err
 	}
 	v2, err := log.NewConfig(config)
 	if err != nil {
+		cleanup()
 		return nil, nil, err
 	}
-	logLog, cleanup, err := log.NewLog(v2)
+	logLog, cleanup2, err := log.NewLog(v2)
 	if err != nil {
+		cleanup()
 		return nil, nil, err
 	}
 	hookManager := app.NewHookManager(logLog)
 	serverHookManager := server.NewHookManager()
 	v3, err := database.NewConfig(config)
 	if err != nil {
+		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
@@ -64,17 +69,20 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 	gormConfig := database.NewGormConfig(v3, loggerInterface)
 	v4, err := tracing.NewConfig(config, arg)
 	if err != nil {
+		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	tracingTracing, cleanup2, err := tracing.NewTracing(v4, arg, logLog)
+	tracingTracing, cleanup3, err := tracing.NewTracing(v4, arg, logLog)
 	if err != nil {
+		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
 	tracingPlugin := database.NewTracingPlugin(v3, tracingTracing)
 	defaultConnection, err := database.NewDefaultConnection(v3)
 	if err != nil {
+		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
@@ -82,6 +90,7 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 	dbResolver := database.NewDbResolver(v3)
 	manager, err := database.NewManager(v3, logLog, gormConfig, tracingPlugin, defaultConnection, dbResolver)
 	if err != nil {
+		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
@@ -90,24 +99,28 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 	user1Biz := user1.NewUser1Biz(userDbRepo)
 	v5, err := redis.NewConfig(config)
 	if err != nil {
+		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
 	v6, err := metrics.NewConfig(config)
 	if err != nil {
+		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
 	metricsMetrics, err := metrics.NewMetrics(v6, arg, logLog)
 	if err != nil {
+		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	redisManager, cleanup3, err := redis.NewManager(logLog, v5, tracingTracing, metricsMetrics)
+	redisManager, cleanup4, err := redis.NewManager(logLog, v5, tracingTracing, metricsMetrics)
 	if err != nil {
+		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
@@ -116,18 +129,20 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 	user2Biz := user2.NewUser2Biz(userCacheRepo)
 	v7, err := client.NewConfig(config)
 	if err != nil {
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	registry := consul.NewConsulRegistry(v)
-	discovery := consul.NewKratosDiscovery(registry)
+	consulRegistry := registry.NewConsulRegistry(logLog, v)
+	discovery := registry.NewKratosDiscovery(consulRegistry)
 	factory := client.NewFactory(v7, logLog, discovery, tracingTracing, metricsMetrics)
 	exampleServiceApiWrapper := example_pb.NewExampleServiceApiWrapper(factory)
 	biz3GetUserImpl := client2.NewBiz3GetUserImpl(exampleServiceApiWrapper)
 	confBootstrap, err := conf.NewBootstrap(config)
 	if err != nil {
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
@@ -138,6 +153,7 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 	bootstrapBootstrap := bootstrap.NewBootstrap(logLog, hookManager, serverHookManager, exampleService)
 	v8, err := app.NewConfig(config)
 	if err != nil {
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
@@ -145,6 +161,7 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 	}
 	v9, err := server.NewConfig(config)
 	if err != nil {
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
@@ -154,15 +171,17 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 	httpServer := server.NewHttpServer(bootstrapBootstrap, v9, logLog, serverHookManager, serverMiddlewares)
 	grpcServer := server.NewGrpcServer(bootstrapBootstrap, v9, logLog, serverHookManager, serverMiddlewares)
 	serverManager := server.NewManager(v9, httpServer, grpcServer)
-	registrar := consul.NewKratosRegistry(registry)
+	registrar := registry.NewKratosRegistry(consulRegistry)
 	kratosApp, err := app.NewApp(bootstrapBootstrap, arg, v8, logLog, hookManager, metricsMetrics, serverManager, registrar)
 	if err != nil {
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
 	return kratosApp, func() {
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()

@@ -33,7 +33,6 @@ func wireApp(*app_info.AppInfo, conf.LocalFilePath) (*kratos.App, func(), error)
 			conf.ProviderSet,
 			data.ProviderSet,
 			service.ProviderSet,
-			// kafka.ProviderSet,
 		),
 	))
 }

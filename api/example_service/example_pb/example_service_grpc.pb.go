@@ -22,6 +22,7 @@ const (
 	ExampleService_GetUser_FullMethodName  = "/example_service.ExampleService/GetUser"
 	ExampleService_GetUser2_FullMethodName = "/example_service.ExampleService/GetUser2"
 	ExampleService_GetUser3_FullMethodName = "/example_service.ExampleService/GetUser3"
+	ExampleService_GetUser4_FullMethodName = "/example_service.ExampleService/GetUser4"
 )
 
 // ExampleServiceClient is the client API for ExampleService service.
@@ -33,6 +34,7 @@ type ExampleServiceClient interface {
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	GetUser2(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	GetUser3(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
+	GetUser4(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 }
 
 type exampleServiceClient struct {
@@ -73,6 +75,16 @@ func (c *exampleServiceClient) GetUser3(ctx context.Context, in *GetUserRequest,
 	return out, nil
 }
 
+func (c *exampleServiceClient) GetUser4(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserResponse)
+	err := c.cc.Invoke(ctx, ExampleService_GetUser4_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ExampleServiceServer is the server API for ExampleService service.
 // All implementations must embed UnimplementedExampleServiceServer
 // for forward compatibility.
@@ -82,6 +94,7 @@ type ExampleServiceServer interface {
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	GetUser2(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	GetUser3(context.Context, *GetUserRequest) (*GetUserResponse, error)
+	GetUser4(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	mustEmbedUnimplementedExampleServiceServer()
 }
 
@@ -100,6 +113,9 @@ func (UnimplementedExampleServiceServer) GetUser2(context.Context, *GetUserReque
 }
 func (UnimplementedExampleServiceServer) GetUser3(context.Context, *GetUserRequest) (*GetUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUser3 not implemented")
+}
+func (UnimplementedExampleServiceServer) GetUser4(context.Context, *GetUserRequest) (*GetUserResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUser4 not implemented")
 }
 func (UnimplementedExampleServiceServer) mustEmbedUnimplementedExampleServiceServer() {}
 func (UnimplementedExampleServiceServer) testEmbeddedByValue()                        {}
@@ -176,6 +192,24 @@ func _ExampleService_GetUser3_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ExampleService_GetUser4_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExampleServiceServer).GetUser4(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ExampleService_GetUser4_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExampleServiceServer).GetUser4(ctx, req.(*GetUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ExampleService_ServiceDesc is the grpc.ServiceDesc for ExampleService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -194,6 +228,10 @@ var ExampleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUser3",
 			Handler:    _ExampleService_GetUser3_Handler,
+		},
+		{
+			MethodName: "GetUser4",
+			Handler:    _ExampleService_GetUser4_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

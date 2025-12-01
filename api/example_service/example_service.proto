@@ -27,6 +27,9 @@ service ExampleService {
       get: "/user3"
     };
   }
+
+  rpc GetUser4 (GetUserRequest) returns (GetUserResponse) {
+  }
 }
 
 message GetUserRequest {
