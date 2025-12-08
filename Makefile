@@ -33,17 +33,22 @@ init:
 .PHONY: config
 # 生成配置
 config:
-	@echo "> protoc config..."
-	@protoc --proto_path=./internal \
+	@echo "> protoc internal/conf..."
+	@if [ -n "$(INTERNAL_PROTO_FILES)" ]; then \
+		protoc --proto_path=./internal \
 	       --proto_path=./third_party \
  	       --go_out=paths=source_relative:./internal \
-	       $(INTERNAL_PROTO_FILES)
+	       $(INTERNAL_PROTO_FILES) && echo 'done'; \
+	else \
+		echo "no internal/conf proto files, skip"; \
+	fi
 
 .PHONY: api
 # 生成api
 api:
 	@echo "> protoc api..."
-	@protoc --proto_path=./api \
+	@if [ -n "$(API_PROTO_FILES)" ]; then \
+		protoc --proto_path=./api \
 			--proto_path=./third_party \
 			--go_out=module=$(GO_MODULE_NAME)/api:./api \
 			--go-http_out=module=$(GO_MODULE_NAME)/api:./api \
@@ -52,7 +57,10 @@ api:
 			--kratos-foundation-client_out=module=$(GO_MODULE_NAME)/api:./api \
 			--kratos-foundation-errors_out=module=$(GO_MODULE_NAME)/api:./api \
 			--openapiv2_out=$(OPEN_API_V2_FLAGS),merge_file_name=openapi.yaml:./ \
-			$(API_PROTO_FILES)
+			$(API_PROTO_FILES) && echo 'done'; \
+	else \
+		echo "no api proto files, skip"; \
+	fi
 
 .PHONY: generate
 # 生成wire/其他生成
