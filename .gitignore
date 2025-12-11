@@ -42,3 +42,11 @@ coverage.out
 coverage.html
 
 .claude
+
+*.my.yaml
+*.local.yaml
+*.dev.yaml
+*.test.yaml
+*.testing.yaml
+*.stage.yaml
+*.prod.yaml
