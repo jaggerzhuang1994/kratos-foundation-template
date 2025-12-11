@@ -149,7 +149,7 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 		cleanup()
 		return nil, nil, err
 	}
-	consulRegistry := registry.NewConsulRegistry(logLog, v)
+	consulRegistry := registry.NewConsulRegistry(v)
 	discovery := registry.NewKratosDiscovery(consulRegistry)
 	factory := client.NewFactory(v10, logLog, discovery, v7, v5)
 	exampleServiceApiWrapper := example_pb.NewExampleServiceApiWrapper(factory)
@@ -212,7 +212,7 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 		return nil, nil, err
 	}
 	registrar := registry.NewKratosRegistry(consulRegistry)
-	kratosApp := app.NewApp(bootstrapBootstrap, httpServer, grpcServer, arg, v11, logLog, v5, appHook, jobServer, register, registrar)
+	kratosApp := app.NewApp(bootstrapBootstrap, httpServer, grpcServer, websocketServer, arg, v11, logLog, v5, appHook, jobServer, register, registrar)
 	return kratosApp, func() {
 		cleanup4()
 		cleanup3()
