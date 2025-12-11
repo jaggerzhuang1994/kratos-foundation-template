@@ -40,3 +40,5 @@ bin/
 # Test coverage
 coverage.out
 coverage.html
+
+.claude
