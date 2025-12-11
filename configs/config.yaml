@@ -63,3 +63,9 @@ client:
 ##      middleware:
 ##        timeout:
 ##          default: 1s
+
+job:
+  jobs:
+    job2:
+      schedule: "@every 5s"
+      concurrent_policy: DELAY

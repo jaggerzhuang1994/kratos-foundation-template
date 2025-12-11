@@ -33,7 +33,7 @@ func ErrorNone(formatAndArgs ...any) *errors.Error {
 	} else { // 如果没有传参数，则默认填充注释为错误原因
 		format = "成功"
 	}
-	return errors.New(200, "NONE", fmt.Sprintf(format, args...)).WithReasonCode(0).WithErrStack()
+	return errors.New(200, "NONE", fmt.Sprintf(format, args...)).WithReasonCode(0).WithErrStack(4)
 }
 
 // 用户不存在
@@ -58,5 +58,5 @@ func ErrorUserNotFound(formatAndArgs ...any) *errors.Error {
 	} else { // 如果没有传参数，则默认填充注释为错误原因
 		format = "用户不存在"
 	}
-	return errors.New(404, "USER_NOT_FOUND", fmt.Sprintf(format, args...)).WithReasonCode(404).WithErrStack()
+	return errors.New(404, "USER_NOT_FOUND", fmt.Sprintf(format, args...)).WithReasonCode(404).WithErrStack(4)
 }
