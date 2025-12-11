@@ -9,6 +9,9 @@ import (
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/server/websocket"
 )
 
+// NewBootstrap
+// bootstrap 可以注入需要调用的方法或者实体
+// bootstrap 在 app.NewApp 初始化之前调用
 func NewBootstrap(
 	httpServer *http.Server,
 	grpcServer *grpc.Server,

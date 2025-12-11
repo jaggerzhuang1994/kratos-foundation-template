@@ -57,6 +57,7 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 		cleanup()
 		return nil, nil, err
 	}
+	register := server.NewRegister(v2)
 	v3, err := log.NewConfig(configConfig)
 	if err != nil {
 		cleanup()
@@ -92,10 +93,11 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 		return nil, nil, err
 	}
 	defaultMiddleware := server.NewDefaultMiddleware(v2, logLog, v5, v7)
-	register := server.NewRegister(v2)
-	httpServer := server.NewHttpServer(v2, defaultMiddleware, register)
-	grpcServer := server.NewGrpcServer(v2, defaultMiddleware, register)
-	websocketServer := websocket.NewServer(logLog, httpServer)
+	hook := server.NewHook(defaultMiddleware)
+	httpServer := server.NewHttpServer(v2, register, hook)
+	grpcServer := server.NewGrpcServer(v2, register, hook)
+	websocketHook := websocket.NewHook()
+	websocketServer := websocket.NewServer(logLog, httpServer, websocketHook)
 	v8, err := database.NewConfig(configConfig)
 	if err != nil {
 		cleanup3()
@@ -172,7 +174,7 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 		cleanup()
 		return nil, nil, err
 	}
-	hook := app.NewHook(logLog)
+	appHook := app.NewHook(logLog)
 	v12, err := config.NewConfig(configConfig)
 	if err != nil {
 		cleanup4()
@@ -210,7 +212,7 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 		return nil, nil, err
 	}
 	registrar := registry.NewKratosRegistry(consulRegistry)
-	kratosApp := app.NewApp(bootstrapBootstrap, httpServer, grpcServer, arg, v11, logLog, v5, hook, jobServer, register, registrar)
+	kratosApp := app.NewApp(bootstrapBootstrap, httpServer, grpcServer, arg, v11, logLog, v5, appHook, jobServer, register, registrar)
 	return kratosApp, func() {
 		cleanup4()
 		cleanup3()
