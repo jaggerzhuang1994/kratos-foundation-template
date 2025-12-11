@@ -63,7 +63,7 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 		cleanup()
 		return nil, nil, err
 	}
-	logLog, cleanup2, err := log.NewLog(v3)
+	logLog, cleanup2, err := log.NewLog(v3, arg)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
@@ -202,7 +202,7 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 		cleanup()
 		return nil, nil, err
 	}
-	jobRegister := job.NewRegister()
+	jobRegister := job.NewRegister(logLog, v12)
 	jobServer, err := job.NewServer(v12, logLog, tracingProvider, metricsProvider, cronCron, v13, jobRegister)
 	if err != nil {
 		cleanup4()
