@@ -1,3 +1,5 @@
+# $schema: https://raw.githubusercontent.com/jaggerzhuang1994/kratos-foundation/main/config.schema.json
+
 # 日志设置
 log:
   # 最小日志级别(本地环境或者debug环境默认 debug，其他环境默认 info)
