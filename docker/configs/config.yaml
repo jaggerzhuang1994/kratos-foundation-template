@@ -1,0 +1,71 @@
+# 日志设置
+log:
+  # 最小日志级别(本地环境或者debug环境默认 debug，其他环境默认 info)
+  level: debug
+  filter_empty: true
+
+# 采样设置
+tracing:
+  # 采样率设置
+  sampler:
+    # RATIO=按照采样率采样（parent_base） ALWAYS=总是采样（不论父级是否采样） NEVER=总是不采样（不论父级是否采样）
+    sample: RATIO
+    ratio: 0.05
+
+# 服务设置
+server:
+  stop_delay: 1s
+  http:
+    addr: 0.0.0.0:8000
+  grpc:
+    addr: 0.0.0.0:9000
+  middleware:
+    timeout:
+      default: 1s
+      routes:
+        - path: /example.ExampleService/GetUser
+          timeout: 0.5s
+        - prefix: /example.ExampleService/GetUser2
+          timeout: 0.7s
+
+# redis配置
+redis:
+  # default 默认值是 default
+  default: default
+  connections:
+    default:
+      addr: "localhost:6379"
+      db: 10
+
+# 数据库配置
+database:
+  # default 默认值是 default
+  default: default
+  connections:
+    default:
+      dsn: root:123456@tcp(localhost:3306)/quantification?parseTime=true&loc=Local
+
+# 客户端配置
+client:
+  clients:
+    # KEY 为服务名
+    example_service:
+      # 默认为 GRPC 协议
+      protocol: GRPC
+      # 指定ip:port，默认为 discovery:///service_name
+      target: "127.0.0.1:9000"
+      middleware:
+        timeout:
+          default: 1s
+#    other_service:
+#      protocol: HTTP
+#      target: "127.0.0.1:8001"
+##      middleware:
+##        timeout:
+##          default: 1s
+
+job:
+  jobs:
+    job2:
+      schedule: "@every 5s"
+      concurrent_policy: DELAY

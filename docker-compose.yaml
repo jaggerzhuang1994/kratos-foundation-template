@@ -1,0 +1,21 @@
+networks:
+  server_network:
+    driver: bridge
+
+services:
+  server:
+    container_name: server
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TARGET: server
+    command: ["./server", "-conf", "./configs"]
+    env_file:
+      - ./docker/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./docker/configs:/app/configs
+    networks:
+      - server_network

@@ -91,6 +91,21 @@ build:
 	@echo "build..."
 	@mkdir -p bin/ && go build -ldflags "-X main.Version=$(VERSION)" -o ./bin/ ./...
 
+# 定义构建模板
+define BUILD_TEMPLATE
+.PHONY: build-$(1)
+
+# 构建 $(1)
+build-$(1):
+	@echo "build $(1)..."
+	@mkdir -p bin/ && go build -ldflags "-X main.Version=$(VERSION)" -o ./bin/ ./cmd/$(1)
+endef
+
+# 查找所有构建目标
+TARGETS=$(shell find cmd -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+# 为每个目标生成构建命令
+$(foreach target,$(TARGETS),$(eval $(call BUILD_TEMPLATE,$(target))))
+
 .PHONY: test
 # 运行单元测试
 test:
