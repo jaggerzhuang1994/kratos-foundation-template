@@ -1,4 +1,4 @@
-package bootstrap
+package main
 
 import (
 	"github.com/go-kratos/kratos/v2/transport/grpc"

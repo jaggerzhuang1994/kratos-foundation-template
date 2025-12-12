@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 
+	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/conf"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/app_info"
 	_ "github.com/jaggerzhuang1994/kratos-foundation/pkg/setup"
 	_ "go.uber.org/automaxprocs"
@@ -28,7 +29,7 @@ func main() {
 	app_info.PrintAppInfo(appInfo)
 
 	// wireApp
-	app, cleanup, err := wireApp(appInfo, []string{flagconf})
+	app, cleanup, err := wireApp(appInfo, conf.FileConfigSource(flagconf))
 	if err != nil {
 		panic(err)
 	}

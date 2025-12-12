@@ -12,7 +12,6 @@ import (
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/biz/example/user1"
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/biz/example/user2"
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/biz/example/user3"
-	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/bootstrap"
 	client2 "github.com/jaggerzhuang1994/kratos-foundation-template/internal/client"
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/conf"
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/data"
@@ -20,9 +19,11 @@ import (
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/app_info"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/app"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/client"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/config"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/consul"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/database"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/job"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/job/config"
+	config2 "github.com/jaggerzhuang1994/kratos-foundation/pkg/component/job/config"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/job/cron"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/job/otel"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/log"
@@ -32,7 +33,6 @@ import (
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/server"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/server/websocket"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/tracing"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/consul"
 )
 
 import (
@@ -43,12 +43,17 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.App, func(), error) {
+func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kratos.App, func(), error) {
 	v, err := consul.NewConsul()
 	if err != nil {
 		return nil, nil, err
 	}
-	configConfig, cleanup, err := conf.NewConfig(arg, v, localFilePath)
+	configFileConfigSource, err := conf.NewFileSource(arg, fileConfigSource)
+	if err != nil {
+		return nil, nil, err
+	}
+	consulConfigSource := conf.NewConsulSource(arg)
+	configConfig, cleanup, err := config.NewConfig(v, configFileConfigSource, consulConfigSource)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -154,7 +159,7 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 	factory := client.NewFactory(v10, logLog, discovery, v7, v5)
 	exampleServiceApiWrapper := example_pb.NewExampleServiceApiWrapper(factory)
 	biz3GetUserImpl := client2.NewBiz3GetUserImpl(exampleServiceApiWrapper)
-	confBootstrap, err := conf.NewBootstrap(configConfig)
+	bootstrap, err := conf.NewBootstrap(configConfig)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -162,10 +167,10 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 		cleanup()
 		return nil, nil, err
 	}
-	user3Biz := user3.NewUser3Biz(biz3GetUserImpl, confBootstrap)
+	user3Biz := user3.NewUser3Biz(biz3GetUserImpl, bootstrap)
 	exampleService := service.NewExampleService(user1Biz, user2Biz, user3Biz)
 	exampleWsHandler := service.NewExampleWsHandler()
-	bootstrapBootstrap := bootstrap.NewBootstrap(httpServer, grpcServer, websocketServer, exampleService, exampleWsHandler)
+	bootstrapBootstrap := NewBootstrap(httpServer, grpcServer, websocketServer, exampleService, exampleWsHandler)
 	v11, err := app.NewConfig(configConfig)
 	if err != nil {
 		cleanup4()
@@ -175,7 +180,7 @@ func wireApp(arg *app_info.AppInfo, localFilePath conf.LocalFilePath) (*kratos.A
 		return nil, nil, err
 	}
 	appHook := app.NewHook(logLog)
-	v12, err := config.NewConfig(configConfig)
+	v12, err := config2.NewConfig(configConfig)
 	if err != nil {
 		cleanup4()
 		cleanup3()

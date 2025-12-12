@@ -1,6 +1,6 @@
 package conf
 
-import "github.com/jaggerzhuang1994/kratos-foundation/pkg/config"
+import "github.com/jaggerzhuang1994/kratos-foundation/pkg/component/config"
 
 func NewBootstrap(c config.Config) (*Bootstrap, error) {
 	var bc Bootstrap
