@@ -22,6 +22,8 @@ func (r *UserDbRepo) GetUser(ctx context.Context, id int64) (*example.User, erro
 	if id == 0 {
 		return nil, example.ErrUserNotFound
 	}
+	// 模拟调用db
+	_ = r.db.GetConnection(ctx).Exec("show tables")
 	return &example.User{
 		ID:   id,
 		Name: fmt.Sprintf("user%d", id),

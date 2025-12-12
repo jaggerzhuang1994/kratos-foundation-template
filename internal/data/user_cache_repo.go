@@ -22,6 +22,8 @@ func (r *UserCacheRepo) GetUser(ctx context.Context, id int64) (*example.User, e
 	if id == 0 {
 		return nil, example.ErrUserNotFound
 	}
+	// 模拟调用redis
+	_ = r.redis.Echo(ctx, "hello")
 	return &example.User{
 		ID:   id,
 		Name: fmt.Sprintf("user%d", id),

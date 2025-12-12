@@ -57,22 +57,23 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	if err != nil {
 		return nil, nil, err
 	}
-	v2, err := server.NewConfig(configConfig)
+	v2, err := log.NewConfig(configConfig)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	register := server.NewRegister(v2)
-	v3, err := log.NewConfig(configConfig)
+	logLog, cleanup2, err := log.NewLog(v2, arg)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	logLog, cleanup2, err := log.NewLog(v3, arg)
+	v3, err := server.NewConfig(configConfig)
 	if err != nil {
+		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
+	register := server.NewRegister(v3)
 	v4, err := metrics.NewConfig(configConfig)
 	if err != nil {
 		cleanup2()
@@ -97,31 +98,40 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 		cleanup()
 		return nil, nil, err
 	}
-	defaultMiddleware := server.NewDefaultMiddleware(v2, logLog, v5, v7)
+	defaultMiddleware := server.NewDefaultMiddleware(v3, logLog, v5, v7)
 	hook := server.NewHook(defaultMiddleware)
-	httpServer := server.NewHttpServer(v2, register, hook)
-	grpcServer := server.NewGrpcServer(v2, register, hook)
+	httpServer := server.NewHttpServer(v3, register, hook)
+	grpcServer := server.NewGrpcServer(v3, register, hook)
 	websocketHook := websocket.NewHook()
 	websocketServer := websocket.NewServer(logLog, httpServer, websocketHook)
-	v8, err := database.NewConfig(configConfig)
+	v8, err := config2.NewConfig(configConfig)
 	if err != nil {
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	loggerInterface := database.NewGormLogger(logLog, v8)
-	gormConfig := database.NewGormConfig(v8, loggerInterface)
-	tracingPlugin := database.NewTracingPlugin(v8, v7)
-	defaultConnection, err := database.NewDefaultConnection(v8)
+	jobRegister := job.NewRegister(logLog, v8)
+	v9, err := database.NewConfig(configConfig)
 	if err != nil {
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	dbResolver := database.NewDbResolver(v8)
-	manager, err := database.NewManager(v8, logLog, gormConfig, tracingPlugin, defaultConnection, dbResolver)
+	loggerInterface := database.NewGormLogger(logLog, v9)
+	gormConfig := database.NewGormConfig(v9, loggerInterface)
+	tracingPlugin := database.NewTracingPlugin(v9, v7)
+	v10 := database.NewMetricsPlugin(v9, v5)
+	defaultConnection, err := database.NewDefaultConnection(v9)
+	if err != nil {
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	dbResolver := database.NewDbResolver(v9)
+	manager, err := database.NewManager(v9, logLog, gormConfig, tracingPlugin, v10, defaultConnection, dbResolver)
 	if err != nil {
 		cleanup3()
 		cleanup2()
@@ -130,14 +140,14 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	}
 	userDbRepo := data.NewUserDbRepo(manager)
 	user1Biz := user1.NewUser1Biz(userDbRepo)
-	v9, err := redis.NewConfig(configConfig)
+	v11, err := redis.NewConfig(configConfig)
 	if err != nil {
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	redisManager, cleanup4, err := redis.NewManager(logLog, v9, v7, v5)
+	redisManager, cleanup4, err := redis.NewManager(logLog, v11, v7, v5)
 	if err != nil {
 		cleanup3()
 		cleanup2()
@@ -146,7 +156,7 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	}
 	userCacheRepo := data.NewUserCacheRepo(redisManager)
 	user2Biz := user2.NewUser2Biz(userCacheRepo)
-	v10, err := client.NewConfig(configConfig)
+	v12, err := client.NewConfig(configConfig)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -156,7 +166,7 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	}
 	consulRegistry := registry.NewConsulRegistry(v)
 	discovery := registry.NewKratosDiscovery(consulRegistry)
-	factory := client.NewFactory(v10, logLog, discovery, v7, v5)
+	factory := client.NewFactory(v12, logLog, discovery, v7, v5)
 	exampleServiceApiWrapper := example_pb.NewExampleServiceApiWrapper(factory)
 	biz3GetUserImpl := client2.NewBiz3GetUserImpl(exampleServiceApiWrapper)
 	bootstrap, err := conf.NewBootstrap(configConfig)
@@ -170,8 +180,8 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	user3Biz := user3.NewUser3Biz(biz3GetUserImpl, bootstrap)
 	exampleService := service.NewExampleService(user1Biz, user2Biz, user3Biz)
 	exampleWsHandler := service.NewExampleWsHandler()
-	bootstrapBootstrap := NewBootstrap(httpServer, grpcServer, websocketServer, exampleService, exampleWsHandler)
-	v11, err := app.NewConfig(configConfig)
+	bootstrapBootstrap := NewBootstrap(logLog, httpServer, grpcServer, websocketServer, jobRegister, exampleService, exampleWsHandler)
+	v13, err := app.NewConfig(configConfig)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -180,7 +190,8 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 		return nil, nil, err
 	}
 	appHook := app.NewHook(logLog)
-	v12, err := config2.NewConfig(configConfig)
+	tracingProvider := otel.NewTracingProvider(v7, v8)
+	metricsProvider, err := otel.NewMetricsProvider(v5, v8)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -188,8 +199,9 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 		cleanup()
 		return nil, nil, err
 	}
-	tracingProvider := otel.NewTracingProvider(v7, v12)
-	metricsProvider, err := otel.NewMetricsProvider(v5, v12)
+	v14 := cron.NewScheduleParser()
+	cronLogger := cron.NewCronLogger(logLog, v8)
+	cronCron, err := cron.NewCron(logLog, v8, v14, cronLogger)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -197,18 +209,7 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 		cleanup()
 		return nil, nil, err
 	}
-	v13 := cron.NewScheduleParser()
-	cronLogger := cron.NewCronLogger(logLog, v12)
-	cronCron, err := cron.NewCron(logLog, v12, v13, cronLogger)
-	if err != nil {
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
-	jobRegister := job.NewRegister(logLog, v12)
-	jobServer, err := job.NewServer(v12, logLog, tracingProvider, metricsProvider, cronCron, v13, jobRegister)
+	jobServer, err := job.NewServer(v8, logLog, tracingProvider, metricsProvider, cronCron, v14, jobRegister)
 	if err != nil {
 		cleanup4()
 		cleanup3()
@@ -217,7 +218,7 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 		return nil, nil, err
 	}
 	registrar := registry.NewKratosRegistry(consulRegistry)
-	kratosApp := app.NewApp(bootstrapBootstrap, httpServer, grpcServer, websocketServer, arg, v11, logLog, v5, appHook, jobServer, register, registrar)
+	kratosApp := app.NewApp(bootstrapBootstrap, httpServer, grpcServer, websocketServer, arg, v13, logLog, v5, appHook, jobServer, register, registrar)
 	return kratosApp, func() {
 		cleanup4()
 		cleanup3()
