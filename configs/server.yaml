@@ -1,0 +1,3 @@
+# $schema: ../internal/conf/conf.schema.json
+
+example_service_config: "hello"

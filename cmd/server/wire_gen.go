@@ -123,16 +123,25 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	gormConfig := database.NewGormConfig(v9, loggerInterface)
 	tracingPlugin := database.NewTracingPlugin(v9, v7)
 	v10 := database.NewMetricsPlugin(v9, v5)
-	defaultConnection, err := database.NewDefaultConnection(v9)
+	defaultConnection, cleanup4, err := database.NewDefaultConnection(v9)
 	if err != nil {
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	dbResolver := database.NewDbResolver(v9)
+	dbResolver, cleanup5, err := database.NewDbResolver(v9, defaultConnection)
+	if err != nil {
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
 	manager, err := database.NewManager(v9, logLog, gormConfig, tracingPlugin, v10, defaultConnection, dbResolver)
 	if err != nil {
+		cleanup5()
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
@@ -142,13 +151,17 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	user1Biz := user1.NewUser1Biz(userDbRepo)
 	v11, err := redis.NewConfig(configConfig)
 	if err != nil {
+		cleanup5()
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	redisManager, cleanup4, err := redis.NewManager(logLog, v11, v7, v5)
+	redisManager, cleanup6, err := redis.NewManager(logLog, v11, v7, v5)
 	if err != nil {
+		cleanup5()
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
@@ -158,6 +171,8 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	user2Biz := user2.NewUser2Biz(userCacheRepo)
 	v12, err := client.NewConfig(configConfig)
 	if err != nil {
+		cleanup6()
+		cleanup5()
 		cleanup4()
 		cleanup3()
 		cleanup2()
@@ -171,6 +186,8 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	biz3GetUserImpl := client2.NewBiz3GetUserImpl(exampleServiceApiWrapper)
 	bootstrap, err := conf.NewBootstrap(configConfig)
 	if err != nil {
+		cleanup6()
+		cleanup5()
 		cleanup4()
 		cleanup3()
 		cleanup2()
@@ -183,6 +200,8 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	bootstrapBootstrap := NewBootstrap(logLog, httpServer, grpcServer, websocketServer, jobRegister, exampleService, exampleWsHandler)
 	v13, err := app.NewConfig(configConfig)
 	if err != nil {
+		cleanup6()
+		cleanup5()
 		cleanup4()
 		cleanup3()
 		cleanup2()
@@ -193,6 +212,8 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	tracingProvider := otel.NewTracingProvider(v7, v8)
 	metricsProvider, err := otel.NewMetricsProvider(v5, v8)
 	if err != nil {
+		cleanup6()
+		cleanup5()
 		cleanup4()
 		cleanup3()
 		cleanup2()
@@ -203,6 +224,8 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	cronLogger := cron.NewCronLogger(logLog, v8)
 	cronCron, err := cron.NewCron(logLog, v8, v14, cronLogger)
 	if err != nil {
+		cleanup6()
+		cleanup5()
 		cleanup4()
 		cleanup3()
 		cleanup2()
@@ -211,6 +234,8 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	}
 	jobServer, err := job.NewServer(v8, logLog, tracingProvider, metricsProvider, cronCron, v14, jobRegister)
 	if err != nil {
+		cleanup6()
+		cleanup5()
 		cleanup4()
 		cleanup3()
 		cleanup2()
@@ -220,6 +245,8 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	registrar := registry.NewKratosRegistry(consulRegistry)
 	kratosApp := app.NewApp(bootstrapBootstrap, httpServer, grpcServer, websocketServer, arg, v13, logLog, v5, appHook, jobServer, register, registrar)
 	return kratosApp, func() {
+		cleanup6()
+		cleanup5()
 		cleanup4()
 		cleanup3()
 		cleanup2()

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/.kratos.api.Bootstrap",
+  "$defs": {
+    ".kratos.api.Bootstrap": {
+      "properties": {
+        "example_service_config": {
+          "$ref": "#/$defs/.kratos.api.Bootstrap.example_service_config"
+        }
+      },
+      "additionalProperties": {
+        "not": {}
+      },
+      "type": "object",
+      "required": [
+        "example_service_config"
+      ]
+    },
+    ".kratos.api.Bootstrap.example_service_config": {
+      "type": "string"
+    }
+  },
+  "type": "object"
+}
