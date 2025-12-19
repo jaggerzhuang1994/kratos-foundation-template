@@ -5,6 +5,11 @@ option go_package = "github.com/jaggerzhuang1994/kratos-foundation-template/inte
 
 import "google/protobuf/duration.proto";
 
+import "pubg/jsonschema.proto";
+option (pubg.jsonschema.file) = {
+  entrypoint_message: "Bootstrap"
+};
+
 message Bootstrap {
-  string example_service_config = 1;
+  optional string example_service_config = 1;
 }

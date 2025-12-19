@@ -53,45 +53,31 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 		return nil, nil, err
 	}
 	consulConfigSource := conf.NewConsulSource(arg)
-	configConfig, cleanup, err := config.NewConfig(v, configFileConfigSource, consulConfigSource)
+	configConfig, cleanup, err := config.NewKratosConfig(v, configFileConfigSource, consulConfigSource)
 	if err != nil {
 		return nil, nil, err
 	}
-	v2, err := log.NewConfig(configConfig)
+	kratos_foundation_pbConfig, err := config.NewConfig(configConfig)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
+	v2 := log.NewConfig(kratos_foundation_pbConfig)
 	logLog, cleanup2, err := log.NewLog(v2, arg)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	v3, err := server.NewConfig(configConfig)
-	if err != nil {
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
+	v3 := server.NewConfig(kratos_foundation_pbConfig)
 	register := server.NewRegister(v3)
-	v4, err := metrics.NewConfig(configConfig)
-	if err != nil {
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
+	v4 := metrics.NewConfig(kratos_foundation_pbConfig)
 	v5, err := metrics.NewMetrics(v4, arg, logLog)
 	if err != nil {
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	v6, err := tracing.NewConfig(configConfig, arg)
-	if err != nil {
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
+	v6 := tracing.NewConfig(kratos_foundation_pbConfig, arg)
 	v7, cleanup3, err := tracing.NewTracing(v6, arg, logLog)
 	if err != nil {
 		cleanup2()
@@ -104,21 +90,9 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	grpcServer := server.NewGrpcServer(v3, register, hook)
 	websocketHook := websocket.NewHook()
 	websocketServer := websocket.NewServer(logLog, httpServer, websocketHook)
-	v8, err := config2.NewConfig(configConfig)
-	if err != nil {
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
+	v8 := config2.NewConfig(kratos_foundation_pbConfig)
 	jobRegister := job.NewRegister(logLog, v8)
-	v9, err := database.NewConfig(configConfig)
-	if err != nil {
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
+	v9 := database.NewConfig(kratos_foundation_pbConfig)
 	loggerInterface := database.NewGormLogger(logLog, v9)
 	gormConfig := database.NewGormConfig(v9, loggerInterface)
 	tracingPlugin := database.NewTracingPlugin(v9, v7)
@@ -149,15 +123,7 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	}
 	userDbRepo := data.NewUserDbRepo(manager)
 	user1Biz := user1.NewUser1Biz(userDbRepo)
-	v11, err := redis.NewConfig(configConfig)
-	if err != nil {
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
+	v11 := redis.NewConfig(kratos_foundation_pbConfig)
 	redisManager, cleanup6, err := redis.NewManager(logLog, v11, v7, v5)
 	if err != nil {
 		cleanup5()
@@ -169,16 +135,7 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	}
 	userCacheRepo := data.NewUserCacheRepo(redisManager)
 	user2Biz := user2.NewUser2Biz(userCacheRepo)
-	v12, err := client.NewConfig(configConfig)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
+	v12 := client.NewConfig(kratos_foundation_pbConfig)
 	consulRegistry := registry.NewConsulRegistry(v)
 	discovery := registry.NewKratosDiscovery(consulRegistry)
 	factory := client.NewFactory(v12, logLog, discovery, v7, v5)
@@ -198,16 +155,7 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	exampleService := service.NewExampleService(user1Biz, user2Biz, user3Biz)
 	exampleWsHandler := service.NewExampleWsHandler()
 	bootstrapBootstrap := NewBootstrap(logLog, httpServer, grpcServer, websocketServer, jobRegister, exampleService, exampleWsHandler)
-	v13, err := app.NewConfig(configConfig)
-	if err != nil {
-		cleanup6()
-		cleanup5()
-		cleanup4()
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return nil, nil, err
-	}
+	v13 := app.NewConfig(kratos_foundation_pbConfig)
 	appHook := app.NewHook(logLog)
 	tracingProvider := otel.NewTracingProvider(v7, v8)
 	metricsProvider, err := otel.NewMetricsProvider(v5, v8)

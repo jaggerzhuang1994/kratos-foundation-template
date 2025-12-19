@@ -1,4 +1,4 @@
-# $schema: https://raw.githubusercontent.com/jaggerzhuang1994/kratos-foundation/refs/tags/v1.1.18/config.schema.json
+# $schema: ../internal/conf/conf.schema.json
 
 # 日志设置
 log:
@@ -24,9 +24,9 @@ server:
       default: 1s
       routes:
         - path: /example.ExampleService/GetUser
-          timeout: 500ms
+          timeout: 0.5s
         - prefix: /example.ExampleService/GetUser2
-          timeout: 700ms
+          timeout: 0.7s
 
 # redis配置
 redis:

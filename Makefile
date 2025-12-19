@@ -26,10 +26,10 @@ init:
 	go install github.com/go-kratos/kratos/cmd/protoc-gen-go-http/v2@latest
 	go install github.com/jaggerzhuang1994/kratos-foundation/cmd/protoc-gen-kratos-foundation-errors@main
 	go install github.com/jaggerzhuang1994/kratos-foundation/cmd/protoc-gen-kratos-foundation-client@main
+	go install github.com/jaggerzhuang1994/kratos-foundation/cmd/protoc-gen-jsonschema@main
 	go install github.com/envoyproxy/protoc-gen-validate@latest
 	go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	go install github.com/pubg/protoc-gen-jsonschema@latest
 
 .PHONY: config
 # 生成配置
@@ -39,11 +39,11 @@ config:
 		protoc --proto_path=./internal \
 	       --proto_path=./third_party \
  	       --go_out=paths=source_relative:./internal \
-			--jsonschema_out=./internal \
-			--jsonschema_opt=entrypoint_message=Bootstrap \
-			--jsonschema_opt=output_file_suffix=.schema.json \
-			--jsonschema_opt=preserve_proto_field_names=true \
-			--jsonschema_opt=additional_properties=DefaultFalse \
+		   --jsonschema_out=./internal \
+		   --jsonschema_opt=draft=Draft07 \
+		   --jsonschema_opt=output_file_suffix=.schema.json \
+		   --jsonschema_opt=preserve_proto_field_names=true \
+		   --jsonschema_opt=merge=https://raw.githubusercontent.com/jaggerzhuang1994/kratos-foundation/refs/heads/main/config.schema.json \
 	       $(INTERNAL_PROTO_FILES) && echo 'done'; \
 	else \
 		echo "no internal/conf proto files, skip"; \
