@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/app_info"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/config"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/config"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/env"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/utils"
 )
@@ -16,9 +16,9 @@ type FileConfigSource string
 
 // NewFileSource 文件配置源
 func NewFileSource(
-	appInfo *app_info.AppInfo,
+	appInfo app_info.AppInfo,
 	fileConfigSource FileConfigSource,
-) (config.FileConfigSource, error) {
+) (config.FileSourcePathList, error) {
 	fileConfigSourcePath := string(fileConfigSource)
 	if fileConfigSourcePath == "" {
 		return nil, nil
@@ -35,9 +35,9 @@ func NewFileSource(
 	if dir {
 		fileList := []string{
 			filepath.Join(fileConfigSourcePath, "config.yaml"),
-			filepath.Join(fileConfigSourcePath, fmt.Sprintf("%s.yaml", appInfo.Name)),
+			filepath.Join(fileConfigSourcePath, fmt.Sprintf("%s.yaml", appInfo.GetName())),
 			filepath.Join(fileConfigSourcePath, fmt.Sprintf("%s.config.yaml", env.AppEnv())),
-			filepath.Join(fileConfigSourcePath, fmt.Sprintf("%s.%s.yaml", env.AppEnv(), appInfo.Name)),
+			filepath.Join(fileConfigSourcePath, fmt.Sprintf("%s.%s.yaml", env.AppEnv(), appInfo.GetName())),
 		}
 		fileList = utils.Filter(fileList, fileExists)
 		if len(fileList) == 0 {
@@ -52,7 +52,7 @@ func NewFileSource(
 }
 
 // NewConsulSource consul 的配置源
-func NewConsulSource(appInfo *app_info.AppInfo) config.ConsulConfigSource {
+func NewConsulSource(appInfo app_info.AppInfo) config.ConsulSourcePathList {
 	appEnv := env.AppEnv()
 	appName := appInfo.GetName()
 	return []string{

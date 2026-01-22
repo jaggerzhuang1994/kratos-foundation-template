@@ -1,29 +1,35 @@
 package main
 
 import (
+	context2 "context"
 	"time"
 
-	"github.com/go-kratos/kratos/v2/transport/grpc"
+	log2 "github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/gorilla/websocket"
 	"github.com/jaggerzhuang1994/kratos-foundation-template/api/example_service/example_pb"
 	job2 "github.com/jaggerzhuang1994/kratos-foundation-template/internal/job"
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/service"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/app"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/bootstrap"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/job"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/log"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/server/websocket"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/context"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/job"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/log"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/server"
 )
 
 // NewBootstrap
 // bootstrap 可以注入需要调用的方法或者实体
 // bootstrap 在 app.NewApp 初始化之前调用
 func NewBootstrap(
-	log *log.Log,
-	httpServer *http.Server,
-	grpcServer *grpc.Server,
-	wss *websocket.Server,
-	register *job.Register,
-
+	log log.Log,
+	httpServer server.HttpServer,
+	grpcServer server.GrpcServer,
+	wss server.WebsocketServer,
+	register job.Register,
+	appHook app.Hook,
+	ctxHook context.Hook,
+	logHook log.Hook,
 	exampleService *service.ExampleService,
 	exampleWsHandler *service.ExampleWsHandler,
 ) bootstrap.Bootstrap {
@@ -46,5 +52,44 @@ func NewBootstrap(
 	// 绑定grpc服务
 	example_pb.RegisterExampleServiceServer(grpcServer, exampleService)
 
+	appHook.BeforeStart(func(ctx context2.Context) error {
+		log.Info("app before start")
+		return nil
+	})
+
+	appHook.AfterStart(func(ctx context2.Context) error {
+		log.Info("app after start")
+		return nil
+	})
+
+	appHook.BeforeStop(func(ctx context2.Context) error {
+		log.Info("app before stop")
+		return nil
+	})
+
+	appHook.AfterStop(func(ctx context2.Context) error {
+		log.Info("app after stop")
+		return nil
+	})
+
+	ctxHook.WithContext(func(ctx context2.Context) context2.Context {
+		return newCtx(ctx, "hello world")
+	})
+
+	logHook.With("custom", log2.Valuer(func(ctx context2.Context) any {
+		return fromCtx(ctx)
+	}), "key2", "value2")
+
 	return nil
+}
+
+type myKey struct {
+}
+
+func newCtx(ctx context2.Context, val any) context2.Context {
+	return context2.WithValue(ctx, myKey{}, val)
+}
+
+func fromCtx(ctx context2.Context) any {
+	return ctx.Value(myKey{})
 }

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-kratos/kratos/v2/transport/http"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/server/websocket"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/server"
 )
 
 type ExampleWsHandler struct {
@@ -24,23 +24,23 @@ func (h *ExampleWsHandler) OnHandshake(request *http.Request) error {
 }
 
 // OnConnect 建立连接后调用
-func (h *ExampleWsHandler) OnConnect(client *websocket.Client) {
-	fmt.Println("OnConnect ", client.Request.RemoteAddr)
+func (h *ExampleWsHandler) OnConnect(client server.WebsocketClient) {
+	fmt.Println("OnConnect ", client.Request().RemoteAddr)
 }
 
 // OnClose 连接关闭后回调
-func (h *ExampleWsHandler) OnClose(client *websocket.Client) {
-	fmt.Println("OnClose ", client.Request.RemoteAddr)
+func (h *ExampleWsHandler) OnClose(client server.WebsocketClient) {
+	fmt.Println("OnClose ", client.Request().RemoteAddr)
 }
 
 // OnError 读取消息过程发生错误调用
-func (h *ExampleWsHandler) OnError(client *websocket.Client, err error) {
-	fmt.Println("OnError ", client.Request.RemoteAddr, err)
+func (h *ExampleWsHandler) OnError(client server.WebsocketClient, err error) {
+	fmt.Println("OnError ", client.Request().RemoteAddr, err)
 }
 
 // OnMessage 收到消息后调用
-func (h *ExampleWsHandler) OnMessage(client *websocket.Client, message []byte, messageType websocket.MessageType) {
-	fmt.Println("OnMessage ", client.Request.RemoteAddr, messageType, message)
+func (h *ExampleWsHandler) OnMessage(client server.WebsocketClient, message []byte, messageType server.MessageType) {
+	fmt.Println("OnMessage ", client.Request().RemoteAddr, messageType, message)
 	err := client.SendText("echo")
 	if err != nil {
 		fmt.Println(err)

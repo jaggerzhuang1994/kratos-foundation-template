@@ -5,16 +5,16 @@ import (
 	"fmt"
 
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/biz/example"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/database"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/database"
 )
 
 // 实现业务需要的接口
 
 type UserDbRepo struct {
-	db *database.Manager
+	db database.Manager
 }
 
-func NewUserDbRepo(db *database.Manager) *UserDbRepo {
+func NewUserDbRepo(db database.Manager) *UserDbRepo {
 	return &UserDbRepo{db: db}
 }
 

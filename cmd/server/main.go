@@ -24,12 +24,8 @@ func init() {
 func main() {
 	flag.Parse()
 
-	// appInfo
-	appInfo := app_info.NewAppInfo(Version)
-	app_info.PrintAppInfo(appInfo)
-
 	// wireApp
-	app, cleanup, err := wireApp(appInfo, conf.FileConfigSource(flagconf))
+	app, cleanup, err := wireApp(app_info.Version(Version), conf.FileConfigSource(flagconf))
 	if err != nil {
 		panic(err)
 	}

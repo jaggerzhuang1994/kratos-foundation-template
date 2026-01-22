@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/log"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/log"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/utils"
 )
 
@@ -17,13 +17,13 @@ func init() {
 }
 
 type Job struct {
-	log   *log.Log
+	log   log.Log
 	name  string
 	delay time.Duration
 }
 
-func NewJob(log *log.Log, name string, delay time.Duration) *Job {
-	return &Job{log.WithModule("job"), name, delay}
+func NewJob(log log.Log, name string, delay time.Duration) *Job {
+	return &Job{log, name, delay}
 }
 
 func (j *Job) Run(ctx context.Context) (err error) {

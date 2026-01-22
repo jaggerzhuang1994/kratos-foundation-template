@@ -5,16 +5,16 @@ import (
 	"fmt"
 
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/biz/example"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/redis"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/redis"
 )
 
 // 实现业务需要的接口
 
 type UserCacheRepo struct {
-	redis *redis.Manager
+	redis redis.Manager
 }
 
-func NewUserCacheRepo(redis *redis.Manager) *UserCacheRepo {
+func NewUserCacheRepo(redis redis.Manager) *UserCacheRepo {
 	return &UserCacheRepo{redis: redis}
 }
 

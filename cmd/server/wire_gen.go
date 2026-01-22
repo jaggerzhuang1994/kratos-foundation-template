@@ -16,23 +16,22 @@ import (
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/conf"
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/data"
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/service"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/app"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/app_info"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/app"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/client"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/config"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/consul"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/database"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/job"
-	config2 "github.com/jaggerzhuang1994/kratos-foundation/pkg/component/job/config"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/job/cron"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/job/otel"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/log"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/metrics"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/redis"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/registry"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/server"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/server/websocket"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/component/tracing"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/client"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/config"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/consul"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/context"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/database"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/discovery"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/job"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/job/otel"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/log"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/metrics"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/redis"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/registry"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/server"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/tracing"
 )
 
 import (
@@ -43,79 +42,100 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kratos.App, func(), error) {
-	v, err := consul.NewConsul()
+func wireApp(version app_info.Version, fileConfigSource conf.FileConfigSource) (*kratos.App, func(), error) {
+	appInfo := app_info.NewAppInfo(version)
+	presetKv := log.NewPresetKv(appInfo)
+	defaultConfig := log.NewDefaultConfig()
+	hook := log.NewHook()
+	logger, cleanup, err := log.NewLogger(presetKv, defaultConfig, hook)
 	if err != nil {
 		return nil, nil, err
 	}
-	configFileConfigSource, err := conf.NewFileSource(arg, fileConfigSource)
-	if err != nil {
-		return nil, nil, err
-	}
-	consulConfigSource := conf.NewConsulSource(arg)
-	configConfig, cleanup, err := config.NewKratosConfig(v, configFileConfigSource, consulConfigSource)
-	if err != nil {
-		return nil, nil, err
-	}
-	kratos_foundation_pbConfig, err := config.NewConfig(configConfig)
+	logLog := log.NewLog(logger)
+	fileSourcePathList, err := conf.NewFileSource(appInfo, fileConfigSource)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	v2 := log.NewConfig(kratos_foundation_pbConfig)
-	logLog, cleanup2, err := log.NewLog(v2, arg)
+	fileSource, err := config.NewFileSource(logLog, fileSourcePathList)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	v3 := server.NewConfig(kratos_foundation_pbConfig)
-	register := server.NewRegister(v3)
-	v4 := metrics.NewConfig(kratos_foundation_pbConfig)
-	v5, err := metrics.NewMetrics(v4, arg, logLog)
+	v, err := consul.NewConsul(logLog)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	consulSourcePathList := conf.NewConsulSource(appInfo)
+	consulSource := config.NewConsulSource(v, logLog, consulSourcePathList)
+	v2, cleanup2, err := config.NewConfig(fileSource, consulSource)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	v3, err := config.NewKratosFoundationConfig(v2, logger)
 	if err != nil {
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	v6 := tracing.NewConfig(kratos_foundation_pbConfig, arg)
-	v7, cleanup3, err := tracing.NewTracing(v6, arg, logLog)
+	serverDefaultConfig := server.NewDefaultConfig()
+	v4 := server.NewConfig(v3, serverDefaultConfig)
+	metricsDefaultConfig := metrics.NewDefaultConfig(appInfo)
+	v5 := metrics.NewConfig(v3, metricsDefaultConfig)
+	serviceAttributes := app_info.NewServiceAttributes(appInfo)
+	v6, err := metrics.NewMetrics(logLog, v5, serviceAttributes)
 	if err != nil {
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	defaultMiddleware := server.NewDefaultMiddleware(v3, logLog, v5, v7)
-	hook := server.NewHook(defaultMiddleware)
-	httpServer := server.NewHttpServer(v3, register, hook)
-	grpcServer := server.NewGrpcServer(v3, register, hook)
-	websocketHook := websocket.NewHook()
-	websocketServer := websocket.NewServer(logLog, httpServer, websocketHook)
-	v8 := config2.NewConfig(kratos_foundation_pbConfig)
-	jobRegister := job.NewRegister(logLog, v8)
-	v9 := database.NewConfig(kratos_foundation_pbConfig)
-	loggerInterface := database.NewGormLogger(logLog, v9)
-	gormConfig := database.NewGormConfig(v9, loggerInterface)
-	tracingPlugin := database.NewTracingPlugin(v9, v7)
-	v10 := database.NewMetricsPlugin(v9, v5)
-	defaultConnection, cleanup4, err := database.NewDefaultConnection(v9)
+	tracingDefaultConfig := tracing.NewDefaultConfig(appInfo)
+	v7 := tracing.NewConfig(v3, tracingDefaultConfig)
+	exporter, err := tracing.NewExporter(v7)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	sampler := tracing.NewSampler(v7, logLog)
+	tracerProvider, cleanup3 := tracing.NewTracerProvider(v7, exporter, sampler, serviceAttributes)
+	v8 := tracing.NewTracing(v7, tracerProvider, serviceAttributes)
+	middlewares := server.NewMiddlewares(v4, logLog, v6, v8)
+	httpServerOptions := server.NewHttpServerOptions(v4, middlewares)
+	v9 := server.NewHttpServer(v4, httpServerOptions)
+	grpcServerOptions := server.NewGrpcServerOptions(v4, middlewares)
+	v10 := server.NewGrpcServer(v4, grpcServerOptions)
+	websocketServer := server.NewWebsocketServer(logLog, v9)
+	jobDefaultConfig := job.NewDefaultConfig()
+	v11 := job.NewConfig(v3, jobDefaultConfig)
+	register := job.NewRegister(v11)
+	appHook := app.NewHook()
+	contextHook := context.NewHook()
+	databaseDefaultConfig := database.NewDefaultConfig()
+	v12 := database.NewConfig(v3, databaseDefaultConfig)
+	connectionFactory := database.NewConnectionFactory()
+	defaultConnection, err := database.NewDefaultConnection(connectionFactory, v12)
 	if err != nil {
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	dbResolver, cleanup5, err := database.NewDbResolver(v9, defaultConnection)
+	gormLogger := database.NewGormLogger(logLog, v12)
+	gormConfig := database.NewGormConfig(v12, gormLogger)
+	tracingPlugin := database.NewTracingPlugin(v12, v8, serviceAttributes)
+	metricsPlugin := database.NewMetricsPlugin(v12, serviceAttributes)
+	dbResolver, err := database.NewDbResolver(v12, defaultConnection, connectionFactory)
 	if err != nil {
-		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
 		return nil, nil, err
 	}
-	manager, err := database.NewManager(v9, logLog, gormConfig, tracingPlugin, v10, defaultConnection, dbResolver)
+	manager, err := database.NewManager(logLog, v12, defaultConnection, gormConfig, tracingPlugin, metricsPlugin, dbResolver)
 	if err != nil {
-		cleanup5()
-		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
@@ -123,11 +143,10 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	}
 	userDbRepo := data.NewUserDbRepo(manager)
 	user1Biz := user1.NewUser1Biz(userDbRepo)
-	v11 := redis.NewConfig(kratos_foundation_pbConfig)
-	redisManager, cleanup6, err := redis.NewManager(logLog, v11, v7, v5)
+	redisDefaultConfig := redis.NewDefaultConfig()
+	v13 := redis.NewConfig(v3, redisDefaultConfig)
+	redisManager, cleanup4, err := redis.NewManager(logLog, v13, v8, v6, serviceAttributes)
 	if err != nil {
-		cleanup5()
-		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
@@ -135,16 +154,16 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	}
 	userCacheRepo := data.NewUserCacheRepo(redisManager)
 	user2Biz := user2.NewUser2Biz(userCacheRepo)
-	v12 := client.NewConfig(kratos_foundation_pbConfig)
-	consulRegistry := registry.NewConsulRegistry(v)
-	discovery := registry.NewKratosDiscovery(consulRegistry)
-	factory := client.NewFactory(v12, logLog, discovery, v7, v5)
+	clientDefaultConfig := client.NewDefaultConfig()
+	v14 := client.NewConfig(v3, clientDefaultConfig)
+	discoveryDefaultConfig := discovery.NewDefaultConfig()
+	v15 := discovery.NewConfig(v3, discoveryDefaultConfig)
+	v16 := discovery.NewDiscovery(logLog, v15, v)
+	factory := client.NewFactory(v14, logLog, v8, v6, v16)
 	exampleServiceApiWrapper := example_pb.NewExampleServiceApiWrapper(factory)
 	biz3GetUserImpl := client2.NewBiz3GetUserImpl(exampleServiceApiWrapper)
-	bootstrap, err := conf.NewBootstrap(configConfig)
+	bootstrap, err := conf.NewBootstrap(v2)
 	if err != nil {
-		cleanup6()
-		cleanup5()
 		cleanup4()
 		cleanup3()
 		cleanup2()
@@ -154,13 +173,24 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 	user3Biz := user3.NewUser3Biz(biz3GetUserImpl, bootstrap)
 	exampleService := service.NewExampleService(user1Biz, user2Biz, user3Biz)
 	exampleWsHandler := service.NewExampleWsHandler()
-	bootstrapBootstrap := NewBootstrap(logLog, httpServer, grpcServer, websocketServer, jobRegister, exampleService, exampleWsHandler)
-	v13 := app.NewConfig(kratos_foundation_pbConfig)
-	appHook := app.NewHook(logLog)
-	tracingProvider := otel.NewTracingProvider(v7, v8)
-	metricsProvider, err := otel.NewMetricsProvider(v5, v8)
+	bootstrapBootstrap := NewBootstrap(logLog, v9, v10, websocketServer, register, appHook, contextHook, hook, exampleService, exampleWsHandler)
+	appDefaultConfig := app.NewDefaultConfig()
+	v17 := app.NewConfig(v3, appDefaultConfig)
+	registryDefaultConfig := registry.NewDefaultConfig()
+	v18 := registry.NewConfig(v3, registryDefaultConfig)
+	v19 := registry.NewRegistry(logLog, v18, v)
+	contextContext, cleanup5, err := context.NewContext(contextHook, appInfo, logLog, v19, v16, v6, v8)
 	if err != nil {
-		cleanup6()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
+	jobLog := job.NewLog(logLog, v11)
+	tracingProvider := otel.NewTracingProvider(v8, v11)
+	metricsProvider, err := otel.NewMetricsProvider(v6, v11)
+	if err != nil {
 		cleanup5()
 		cleanup4()
 		cleanup3()
@@ -168,11 +198,12 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 		cleanup()
 		return nil, nil, err
 	}
-	v14 := cron.NewScheduleParser()
-	cronLogger := cron.NewCronLogger(logLog, v8)
-	cronCron, err := cron.NewCron(logLog, v8, v14, cronLogger)
+	jobMiddlewares := job.NewMiddleware(jobLog, tracingProvider, metricsProvider)
+	cronLog := job.NewCronLog(logLog, v11)
+	scheduleParser := job.NewScheduleParser(cronLog)
+	cronLogger := job.NewCronLogger(cronLog)
+	cron, err := job.NewCron(cronLog, v11, scheduleParser, cronLogger)
 	if err != nil {
-		cleanup6()
 		cleanup5()
 		cleanup4()
 		cleanup3()
@@ -180,9 +211,8 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 		cleanup()
 		return nil, nil, err
 	}
-	jobServer, err := job.NewServer(v8, logLog, tracingProvider, metricsProvider, cronCron, v14, jobRegister)
+	jobServer, err := job.NewServer(jobLog, jobMiddlewares, register, cron, scheduleParser)
 	if err != nil {
-		cleanup6()
 		cleanup5()
 		cleanup4()
 		cleanup3()
@@ -190,10 +220,9 @@ func wireApp(arg *app_info.AppInfo, fileConfigSource conf.FileConfigSource) (*kr
 		cleanup()
 		return nil, nil, err
 	}
-	registrar := registry.NewKratosRegistry(consulRegistry)
-	kratosApp := app.NewApp(bootstrapBootstrap, httpServer, grpcServer, websocketServer, arg, v13, logLog, v5, appHook, jobServer, register, registrar)
+	serverRegister := server.NewRegister(v4, v9, v10, jobServer)
+	kratosApp := app.NewApp(bootstrapBootstrap, v17, appHook, appInfo, contextContext, logger, serverRegister, v19)
 	return kratosApp, func() {
-		cleanup6()
 		cleanup5()
 		cleanup4()
 		cleanup3()
