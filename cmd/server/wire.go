@@ -19,6 +19,6 @@ func wireApp(app_info.Version, conf.FileConfigSource) (*kratos.App, func(), erro
 	panic(wire.Build(
 		kratos_foundation.ProviderSet,
 		internal.ProviderSet,
-		NewBootstrap,
+		Boot,
 	))
 }
