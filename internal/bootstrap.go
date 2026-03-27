@@ -1,36 +1,19 @@
 package internal
 
 import (
-	context2 "context"
-
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/context"
-	"github.com/jaggerzhuang1994/kratos-foundation/pkg/log"
+	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/job/globaljob"
+	"github.com/jaggerzhuang1994/kratos-foundation/pkg/job"
 )
 
-// 全局级别的引导
+// 全局级别的引导，所有 cmd 都会执行这个 boot
+// 可以在这边注入一些全局都需要注册的东西
 
-type Bootstrap any
+type GlobalBootstrap any
 
 func Boot(
-	ctxHook context.Hook,
-	logHook log.Hook,
-) Bootstrap {
-	ctxHook.WithContext(func(ctx context2.Context) context2.Context {
-		return newCtx(ctx, "hello world")
-	})
-	logHook.With("custom", func(ctx context2.Context) any {
-		return fromCtx(ctx)
-	}, "key2", "value2")
+	job job.Register,
+	globalJob *globaljob.Job,
+) GlobalBootstrap {
+	job.Register("global", globalJob)
 	return nil
-}
-
-type myKey struct {
-}
-
-func newCtx(ctx context2.Context, val any) context2.Context {
-	return context2.WithValue(ctx, myKey{}, val)
-}
-
-func fromCtx(ctx context2.Context) any {
-	return ctx.Value(myKey{})
 }

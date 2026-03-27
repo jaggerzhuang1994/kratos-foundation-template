@@ -20,6 +20,9 @@ func Setup(
 	_ = middlewares
 	_ = httpOpts
 	_ = grpcOpts
+	// middlewares.Add()
+	// httpOpts.Add()
+	// grpcOpts.Add()
 	return nil
 }
 
@@ -28,10 +31,18 @@ func Boot(
 	httpServer server.HttpServer,
 	grpcServer server.GrpcServer,
 	wss server.WebsocketServer,
-	// service
-	exampleWsHandler *service.ExampleWsHandler,
+
 	exampleService *service.ExampleService,
+	exampleWsHandler *service.ExampleWsHandler,
 ) server.Bootstrap {
+	// http
+	if httpServer != nil {
+		example_pb.RegisterExampleServiceHTTPServer(httpServer, exampleService)
+	}
+	// grpc
+	if grpcServer != nil {
+		example_pb.RegisterExampleServiceServer(grpcServer, exampleService)
+	}
 	// websocket
 	wss.Handle("/echo", exampleWsHandler, websocket.Upgrader{
 		// 不校验来源,在websocket在线工具下可以调试
@@ -39,9 +50,5 @@ func Boot(
 			return true
 		},
 	})
-	// http
-	example_pb.RegisterExampleServiceHTTPServer(httpServer, exampleService)
-	// grpc
-	example_pb.RegisterExampleServiceServer(grpcServer, exampleService)
 	return nil
 }

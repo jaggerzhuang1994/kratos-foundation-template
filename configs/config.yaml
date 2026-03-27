@@ -59,18 +59,3 @@ client:
       middleware:
         timeout:
           default: 1s
-
-job:
-  jobs:
-    job1:
-      schedule: "@every 1s"
-    job2:
-      schedule: "@every 1s"
-      concurrent_policy: DELAY
-    job3:
-      schedule: "@every 1s"
-      concurrent_policy: SKIP
-    job4:
-      schedule: "* * * * *"
-    job5:
-      schedule: "* * * * * *"

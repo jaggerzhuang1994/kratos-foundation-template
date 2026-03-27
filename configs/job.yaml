@@ -1,0 +1,10 @@
+# $schema: ../internal/conf/conf.schema.json
+
+# 也可以覆盖任务的配置
+job:
+  jobs:
+    global:
+      disable: false # 也可以选择临时关闭某个job
+    cron:
+      schedule: "@every 5s"
+      concurrent_policy: SKIP

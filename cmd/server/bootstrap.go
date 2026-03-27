@@ -11,27 +11,14 @@ import (
 // 应用级别的 bootstrap
 
 func Boot(
-	_ internal.Bootstrap, // 引入内部 bootstrap 逻辑
+	_ internal.GlobalBootstrap, // 引入全局 bootstrap
 	log log.Log,
 	appHook app.Hook,
 ) app.Bootstrap {
+	log.Info("cmd/server bootstrap")
+
 	appHook.BeforeStart(func(ctx context.Context) error {
-		log.Info("app before start")
-		return nil
-	})
-
-	appHook.AfterStart(func(ctx context.Context) error {
-		log.Info("app after start")
-		return nil
-	})
-
-	appHook.BeforeStop(func(ctx context.Context) error {
-		log.Info("app before stop")
-		return nil
-	})
-
-	appHook.AfterStop(func(ctx context.Context) error {
-		log.Info("app after stop")
+		log.WithContext(ctx).Info("app before start")
 		return nil
 	})
 

@@ -6,7 +6,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.3.0
 	github.com/go-kratos/kratos/v2 v2.9.2
 	github.com/google/wire v0.7.0
-	github.com/jaggerzhuang1994/kratos-foundation v1.2.8
+	github.com/jaggerzhuang1994/kratos-foundation v1.2.9
 	github.com/jaggerzhuang1994/kratos-foundation/cmd/protoc-gen-jsonschema v0.0.0-20260121020555-efda447ae042
 	github.com/pkg/errors v0.9.1
 	go.uber.org/automaxprocs v1.6.0

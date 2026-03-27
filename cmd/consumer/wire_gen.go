@@ -17,6 +17,7 @@ import (
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/conf"
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/data"
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/job/globaljob"
+	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/job/kafka_consumer"
 	server2 "github.com/jaggerzhuang1994/kratos-foundation-template/internal/server"
 	"github.com/jaggerzhuang1994/kratos-foundation-template/internal/service"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/app"
@@ -88,8 +89,10 @@ func wireApp(version app_info.Version, fileConfigSource conf.FileConfigSource) (
 	register := job.NewRegister(v5)
 	globaljobJob := globaljob.NewJob(logLog)
 	globalBootstrap := internal.Boot(register, globaljobJob)
-	appHook := app.NewHook()
-	bootstrap := Boot(globalBootstrap, logLog, appHook)
+	disableState := server.NewDisableState()
+	disableGrpc := server.NewDisableGrpc(disableState)
+	consumer := kafka_consumer.NewConsumer()
+	bootstrap := Boot(globalBootstrap, disableGrpc, logLog, register, consumer)
 	jobLog := job.NewLog(logLog, v5)
 	tracingDefaultConfig := tracing.NewDefaultConfig(appInfo)
 	v6 := tracing.NewConfig(v4, tracingDefaultConfig)
@@ -133,7 +136,6 @@ func wireApp(version app_info.Version, fileConfigSource conf.FileConfigSource) (
 	}
 	serverDefaultConfig := server.NewDefaultConfig()
 	v8 := server.NewConfig(v4, serverDefaultConfig)
-	disableState := server.NewDisableState()
 	serverRegister := server.NewRegister(v8, disableState)
 	jobBootstrap, err := job.NewBootstrap(jobLog, v5, middlewares, register, cron, scheduleParser, serverRegister)
 	if err != nil {
@@ -212,6 +214,7 @@ func wireApp(version app_info.Version, fileConfigSource conf.FileConfigSource) (
 	serverBootstrap := server2.Boot(v12, v13, websocketServer, exampleService, exampleWsHandler)
 	appDefaultConfig := app.NewDefaultConfig()
 	v19 := app.NewConfig(v4, appDefaultConfig)
+	appHook := app.NewHook()
 	contextHook := context.NewHook()
 	registryDefaultConfig := registry.NewDefaultConfig()
 	v20 := registry.NewConfig(v4, registryDefaultConfig)
