@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/app_info"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/config"
 	"github.com/jaggerzhuang1994/kratos-foundation/pkg/env"
@@ -23,32 +24,37 @@ func NewFileSource(
 	if fileConfigSourcePath == "" {
 		return nil, nil
 	}
+
 	dir, err := isDir(fileConfigSourcePath)
+	// 如果传入不存在的文件路径，则告警，不要中断运行
 	if err != nil {
-		return nil, err
+		log.Warnf("failed to stat config path: path=%s, error=%v", fileConfigSourcePath, err)
+		return nil, nil
 	}
-	// 如果fileConfigSource是目录，则读取目录下
+
+	// 如果 fileConfigSource 是文件路径，则直接返回
+	if !dir {
+		return []string{
+			fileConfigSourcePath,
+		}, nil
+	}
+
+	// 如果 fileConfigSource 是目录，则读取目录下存在的文件
 	//   config.yaml
 	//   {appInfo.Name}.yaml
 	//   {env}.config.yaml
 	//   {env}.{appInfo.Name}.yaml
-	if dir {
-		fileList := []string{
-			filepath.Join(fileConfigSourcePath, "config.yaml"),
-			filepath.Join(fileConfigSourcePath, fmt.Sprintf("%s.yaml", appInfo.GetName())),
-			filepath.Join(fileConfigSourcePath, fmt.Sprintf("%s.config.yaml", env.AppEnv())),
-			filepath.Join(fileConfigSourcePath, fmt.Sprintf("%s.%s.yaml", env.AppEnv(), appInfo.GetName())),
-		}
-		fileList = utils.Filter(fileList, fileExists)
-		if len(fileList) == 0 {
-			return nil, nil
-		}
-		return fileList, nil
+	fileList := []string{
+		filepath.Join(fileConfigSourcePath, "config.yaml"),
+		filepath.Join(fileConfigSourcePath, fmt.Sprintf("%s.yaml", appInfo.GetName())),
+		filepath.Join(fileConfigSourcePath, fmt.Sprintf("%s.config.yaml", env.AppEnv())),
+		filepath.Join(fileConfigSourcePath, fmt.Sprintf("%s.%s.yaml", env.AppEnv(), appInfo.GetName())),
 	}
-	// 如果fileConfigSource不是目录，则当作文件返回
-	return []string{
-		fileConfigSourcePath,
-	}, nil
+	fileList = utils.Filter(fileList, fileExists)
+	if len(fileList) == 0 {
+		return nil, nil
+	}
+	return fileList, nil
 }
 
 // NewConsulSource consul 的配置源
